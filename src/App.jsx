@@ -944,7 +944,15 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget }) {
         </div>
       </Card>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12 }}>
+        <Btn v="ghost" onClick={() => {
+          if (window.confirm("This will replace all current budget categories with the default list. Actual spent amounts will be kept if the category name matches, otherwise reset to 0. Continue?")) {
+            setBudget(INIT_B.map(b => {
+              const existing = budget.find(x => x.category === b.category);
+              return { ...b, actual: existing?.actual || 0 };
+            }));
+          }
+        }}>↺ Reset to Defaults</Btn>
         <Btn onClick={() => { setForm({ category: "", estimated: "", actual: "" }); setSel(null); setModal(true); }}>+ Add Category</Btn>
       </div>
 
