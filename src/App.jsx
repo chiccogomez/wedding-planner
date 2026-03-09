@@ -46,19 +46,20 @@ const EC = {"Payment Due":"#C47A7A","Meeting":"#7A9EAD","Milestone":"#B8976A","F
 const SC = {"Unpaid":"#C47A7A","Partial":"#C4A87A","Fully Paid":"#7A9E8A"};
 const RC = {"Pending":"#C4A87A","Confirmed":"#7A9E8A","Declined":"#C47A7A"};
 
-/* ─── Supplier total computation (base + dp + crew + oot) ─────────────────── */
+/* ─── Supplier total computation ─────────────────────────────────────────── */
+// Total contract = base + crew meals (if applicable) + OOT fee (if applicable)
+// DP is a payment toward the total — it reduces the balance, not adds to it
 const computeSupplierTotal = (f) => {
   const base = num(f.baseAmount);
-  const dp = f.hasDP ? num(f.dpAmount) : 0;
-  const crew = num(f.crewMeals);
-  const oot = num(f.ootFee);
-  return base + dp + crew + oot;
+  const crew = f.hasCrew ? num(f.crewMeals) : 0;
+  const oot = f.hasOOT ? num(f.ootFee) : 0;
+  return base + crew + oot;
 };
 
 const INIT_S = [
-  {id:1,name:"Antonio's Restaurant",category:"Venue",baseAmount:250000,hasDP:true,dpAmount:50000,dpDueDate:"2025-12-01",dpPaidDate:"2025-11-15",crewMeals:0,ootFee:0,total:250000,paid:50000,dueDate:"2026-10-01",status:"Partial",notes:"Cocktail @ Lanai + Main Dining",payments:[{date:"2025-11-15",amount:50000,note:"Deposit"}]},
-  {id:2,name:"Our Lady of Lourdes Parish",category:"Venue",baseAmount:15000,hasDP:false,dpAmount:0,dpDueDate:"",dpPaidDate:"",crewMeals:0,ootFee:0,total:15000,paid:0,dueDate:"2026-12-01",status:"Unpaid",notes:"Church fee + stipend",payments:[]},
-  {id:3,name:"Photo/Video Team",category:"Photography",baseAmount:120000,hasDP:true,dpAmount:30000,dpDueDate:"2025-11-01",dpPaidDate:"2025-12-01",crewMeals:5000,ootFee:3000,total:128000,paid:30000,dueDate:"2026-11-15",status:"Partial",notes:"Full day + SDE",payments:[{date:"2025-12-01",amount:30000,note:"Booking fee"}]},
+  {id:1,name:"Antonio's Restaurant",category:"Venue",baseAmount:250000,hasDP:true,dpAmount:50000,dpDueDate:"2025-12-01",dpPaidDate:"2025-11-15",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:250000,paid:50000,dueDate:"2026-10-01",status:"Partial",notes:"Cocktail @ Lanai + Main Dining",payments:[{date:"2025-11-15",amount:50000,note:"Downpayment"}]},
+  {id:2,name:"Our Lady of Lourdes Parish",category:"Venue",baseAmount:15000,hasDP:false,dpAmount:0,dpDueDate:"",dpPaidDate:"",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:15000,paid:0,dueDate:"2026-12-01",status:"Unpaid",notes:"Church fee + stipend",payments:[]},
+  {id:3,name:"Photo/Video Team",category:"Photography",baseAmount:120000,hasDP:true,dpAmount:30000,dpDueDate:"2025-11-01",dpPaidDate:"2025-12-01",hasCrew:true,crewMeals:5000,hasOOT:true,ootFee:3000,total:128000,paid:30000,dueDate:"2026-11-15",status:"Partial",notes:"Full day + SDE",payments:[{date:"2025-12-01",amount:30000,note:"Downpayment"}]},
 ];
 const INIT_G = [
   {id:1,name:"Jose Santos",phone:"09171234567",group:"Groom",rsvp:"Confirmed",meal:"Beef",plusOne:false,table:"1",notes:""},
@@ -266,13 +267,13 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
   const budgeted = budgetRow?.estimated || 0;
   const spent = budgetRow?.actual || 0;
   const remaining = budgeted - spent;
-  const total = computeSupplierTotal(form);
 
-  const f = (label, field, type = "text", req = false) => (
-    <Field label={label} required={req}>
-      <input type={type} value={form[field] || ""} onChange={e => setForm(p => ({ ...p, [field]: e.target.value }))} />
-    </Field>
-  );
+  const base = num(form.baseAmount);
+  const crew = form.hasCrew ? num(form.crewMeals) : 0;
+  const oot = form.hasOOT ? num(form.ootFee) : 0;
+  const total = base + crew + oot;
+  const dp = form.hasDP ? num(form.dpAmount) : 0;
+  const balance = total - dp;
 
   return (
     <>
@@ -291,7 +292,7 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Base Amount (₱)" required><input type="number" value={form.baseAmount || ""} onChange={e => setForm(p => ({ ...p, baseAmount: e.target.value }))} /></Field>
-        <Field label="Final Due Date" required><input type="date" value={form.dueDate || ""} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} /></Field>
+        <Field label="Final Due Date"><input type="date" value={form.dueDate || ""} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} /></Field>
       </div>
 
       {/* Down payment toggle */}
@@ -305,6 +306,7 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
       {form.hasDP && (
         <div style={{ background: "rgba(196,150,122,.08)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 10, letterSpacing: 1.5, color: "var(--r)", textTransform: "uppercase", marginBottom: 10, fontWeight: 500 }}>Downpayment Details</div>
+          <p style={{ fontSize: 11, color: "var(--m)", marginBottom: 10 }}>DP is counted as your first payment — it reduces the remaining balance.</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="DP Amount (₱)" required><input type="number" value={form.dpAmount || ""} onChange={e => setForm(p => ({ ...p, dpAmount: e.target.value }))} /></Field>
             <Field label="DP Due Date" required><input type="date" value={form.dpDueDate || ""} onChange={e => setForm(p => ({ ...p, dpDueDate: e.target.value }))} /></Field>
@@ -313,26 +315,56 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
         </div>
       )}
 
-      {/* Crew meals & OOT */}
-      <div style={{ background: "rgba(122,158,173,.08)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 10, letterSpacing: 1.5, color: "var(--b)", textTransform: "uppercase", marginBottom: 10, fontWeight: 500 }}>Additional Fees (Required to confirm)</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Crew Meals (₱)" required><input type="number" value={form.crewMeals ?? 0} onChange={e => setForm(p => ({ ...p, crewMeals: e.target.value }))} placeholder="0" /></Field>
-          <Field label="Out-of-Town Fee (₱)" required><input type="number" value={form.ootFee ?? 0} onChange={e => setForm(p => ({ ...p, ootFee: e.target.value }))} placeholder="0" /></Field>
-        </div>
+      {/* Crew meals toggle */}
+      <div style={{ marginBottom: 8 }}>
+        <label className="toggle-box" onClick={() => setForm(p => ({ ...p, hasCrew: !p.hasCrew }))}>
+          <input type="checkbox" checked={!!form.hasCrew} onChange={() => {}} style={{ accentColor: "var(--b)" }} />
+          <span>Includes Crew Meals</span>
+        </label>
       </div>
+      {form.hasCrew && (
+        <div style={{ marginBottom: 14, paddingLeft: 4 }}>
+          <Field label="Crew Meals (₱)"><input type="number" value={form.crewMeals || ""} onChange={e => setForm(p => ({ ...p, crewMeals: e.target.value }))} placeholder="0" /></Field>
+        </div>
+      )}
+
+      {/* OOT toggle */}
+      <div style={{ marginBottom: 8 }}>
+        <label className="toggle-box" onClick={() => setForm(p => ({ ...p, hasOOT: !p.hasOOT }))}>
+          <input type="checkbox" checked={!!form.hasOOT} onChange={() => {}} style={{ accentColor: "var(--b)" }} />
+          <span>Includes Out-of-Town Fee</span>
+        </label>
+      </div>
+      {form.hasOOT && (
+        <div style={{ marginBottom: 14, paddingLeft: 4 }}>
+          <Field label="Out-of-Town Fee (₱)"><input type="number" value={form.ootFee || ""} onChange={e => setForm(p => ({ ...p, ootFee: e.target.value }))} placeholder="0" /></Field>
+        </div>
+      )}
 
       {/* Total preview */}
-      <div style={{ background: "var(--l)", borderRadius: 8, padding: 12, marginBottom: 14, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, textAlign: "center" }}>
-        {[["Base", num(form.baseAmount)], ["DP", form.hasDP ? num(form.dpAmount) : 0], ["Crew", num(form.crewMeals)], ["OOT", num(form.ootFee)]].map(([l, v]) => (
-          <div key={l}>
-            <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{l}</div>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>{php(v)}</div>
+      <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontWeight: 500 }}>Contract Summary</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, textAlign: "center", marginBottom: 10 }}>
+          {[["Base", base], form.hasCrew && ["Crew Meals", crew], form.hasOOT && ["OOT Fee", oot]].filter(Boolean).map(([l, v]) => (
+            <div key={l} style={{ background: "var(--wh)", borderRadius: 6, padding: "8px 4px" }}>
+              <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{l}</div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{php(v)}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ borderTop: "1px solid #D8D0C4", paddingTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, textAlign: "center" }}>
+          <div>
+            <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Total Contract</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--ink)" }}>{php(total)}</div>
           </div>
-        ))}
-        <div style={{ gridColumn: "1/-1", borderTop: "1px solid #D8D0C4", paddingTop: 8, marginTop: 4 }}>
-          <span style={{ fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Total Contract: </span>
-          <strong style={{ color: "var(--r)", fontSize: 15 }}>{php(total)}</strong>
+          <div>
+            <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Downpayment</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: form.hasDP ? "var(--su)" : "var(--m)" }}>{form.hasDP ? `− ${php(dp)}` : "—"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Balance Due</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--r)" }}>{php(balance)}</div>
+          </div>
         </div>
       </div>
 
@@ -354,21 +386,33 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
   const [bulkResult, setBulkResult] = useState(null);
+  const [showPayCats, setShowPayCats] = useState(false);
   const fileRef = useRef();
 
   const list = suppliers.filter(s => (cat === "All" || s.category === cat) && s.name.toLowerCase().includes(q.toLowerCase()));
   const tot = suppliers.reduce((a, s) => a + (s.total || 0), 0);
   const paid = suppliers.reduce((a, s) => a + (s.paid || 0), 0);
 
-  const blankForm = () => ({ name: "", category: "Venue", baseAmount: "", hasDP: false, dpAmount: "", dpDueDate: "", dpPaidDate: "", crewMeals: 0, ootFee: 0, dueDate: "", notes: "", payments: [] });
+  // Payments grouped by category
+  const payByCat = useMemo(() => {
+    const cats = {};
+    suppliers.forEach(s => {
+      if (!cats[s.category]) cats[s.category] = { total: 0, paid: 0, suppliers: [] };
+      cats[s.category].total += s.total || 0;
+      cats[s.category].paid += s.paid || 0;
+      cats[s.category].suppliers.push(s);
+    });
+    return cats;
+  }, [suppliers]);
+
+  const blankForm = () => ({ name: "", category: "Venue", baseAmount: "", hasDP: false, dpAmount: "", dpDueDate: "", dpPaidDate: "", hasCrew: false, crewMeals: "", hasOOT: false, ootFee: "", dueDate: "", notes: "", payments: [] });
 
   const save = () => {
-    if (!form.name || !form.baseAmount || !form.dueDate) return alert("Please fill required fields (*)");
+    if (!form.name || !form.baseAmount) return alert("Name and Base Amount are required");
     if (form.hasDP && (!form.dpAmount || !form.dpDueDate)) return alert("Please fill DP Amount and DP Due Date");
     const total = computeSupplierTotal(form);
-    const payments = form.payments || [];
-    // If DP is paid, ensure it's in payments
-    let finalPayments = [...payments];
+    // Build payments list — DP paid date adds it as first payment
+    let finalPayments = [...(form.payments || [])];
     if (form.hasDP && form.dpPaidDate && form.dpAmount) {
       const alreadyLogged = finalPayments.some(p => p.note === "Downpayment");
       if (!alreadyLogged) finalPayments.unshift({ date: form.dpPaidDate, amount: num(form.dpAmount), note: "Downpayment" });
@@ -395,9 +439,9 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
 
   const downloadTemplate = () => {
     downloadCSV("suppliers_template.csv",
-      ["name","category","baseAmount","hasDP","dpAmount","dpDueDate","dpPaidDate","crewMeals","ootFee","dueDate","notes"],
-      [["Antonio's Restaurant","Venue","250000","TRUE","50000","2025-12-01","2025-11-15","0","0","2026-10-01","Cocktail + Main Dining"],
-       ["Photo Team","Photography","120000","TRUE","30000","2025-11-01","","5000","3000","2026-11-15","Full day SDE"]]
+      ["name","category","baseAmount","hasDP","dpAmount","dpDueDate","dpPaidDate","hasCrew","crewMeals","hasOOT","ootFee","dueDate","notes"],
+      [["Antonio's Restaurant","Venue","250000","TRUE","50000","2025-12-01","2025-11-15","FALSE","0","FALSE","0","2026-10-01","Cocktail + Main Dining"],
+       ["Photo Team","Photography","120000","TRUE","30000","2025-11-01","","TRUE","5000","TRUE","3000","2026-11-15","Full day SDE"]]
     );
   };
 
@@ -409,6 +453,8 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
       const added = [];
       rows.forEach(r => {
         if (!r.name) return;
+        const hasCrew = (r.hascrew || r.hasCrew || "").toLowerCase() === "true";
+        const hasOOT = (r.hasoot || r.hasOOT || "").toLowerCase() === "true";
         const f = {
           id: Date.now() + Math.random(),
           name: r.name, category: r.category || "Other",
@@ -417,8 +463,8 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
           dpAmount: num(r.dpamount || r.dpAmount),
           dpDueDate: r.dpduedate || r.dpDueDate || "",
           dpPaidDate: r.dppaiddate || r.dpPaidDate || "",
-          crewMeals: num(r.crewmeals || r.crewMeals),
-          ootFee: num(r.ootfee || r.ootFee),
+          hasCrew, crewMeals: hasCrew ? num(r.crewmeals || r.crewMeals) : 0,
+          hasOOT, ootFee: hasOOT ? num(r.ootfee || r.ootFee) : 0,
           dueDate: r.duedate || r.dueDate || "",
           notes: r.notes || "", payments: [],
         };
@@ -437,7 +483,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
 
   return (
     <div className="fade">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 14 }}>
         {[["Total Contracts", tot, "var(--ink)"], ["Total Paid", paid, "var(--su)"], ["Outstanding", tot - paid, "var(--r)"]].map(([l, v, c]) => (
           <Card key={l} style={{ textAlign: "center" }}>
             <div style={{ fontSize: 10, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>{l}</div>
@@ -445,6 +491,46 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
           </Card>
         ))}
       </div>
+
+      {/* Payments by category panel */}
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={() => setShowPayCats(p => !p)}>
+          <h4 style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)", fontWeight: 500 }}>Payments by Category</h4>
+          <span style={{ fontSize: 12, color: "var(--m)" }}>{showPayCats ? "▲" : "▼"}</span>
+        </div>
+        {showPayCats && (
+          <div style={{ marginTop: 14 }}>
+            {Object.entries(payByCat).map(([catName, data]) => {
+              const pct = data.total > 0 ? Math.min(100, (data.paid / data.total) * 100) : 0;
+              return (
+                <div key={catName} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 500 }}>{catName}</span>
+                    <span style={{ color: "var(--m)", fontSize: 12 }}>{php(data.paid)} / {php(data.total)}</span>
+                  </div>
+                  <div style={{ height: 6, background: "var(--l)", borderRadius: 3, overflow: "hidden", marginBottom: 6 }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: pct >= 100 ? "var(--su)" : "var(--r)", borderRadius: 3 }} />
+                  </div>
+                  {data.suppliers.map(s => (
+                    <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, padding: "5px 8px", marginBottom: 2, background: "var(--cr)", borderRadius: 5 }}>
+                      <span style={{ color: "var(--ink)" }}>{s.name}</span>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        {(s.payments || []).length > 0 && (
+                          <span style={{ fontSize: 11, color: "var(--m)" }}>{s.payments.length} payment{s.payments.length !== 1 ? "s" : ""}</span>
+                        )}
+                        <span style={{ color: "var(--r)", fontWeight: 500 }}>{php(s.total - (s.paid || 0))} left</span>
+                        <Badge label={s.status} color={SC[s.status]} />
+                        <Btn v="ghost" onClick={() => { setSel(s); setModal("view"); }} style={{ padding: "4px 8px", fontSize: 10 }}>View</Btn>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+            {Object.keys(payByCat).length === 0 && <p style={{ color: "var(--m)", fontSize: 13, textAlign: "center" }}>No suppliers yet.</p>}
+          </div>
+        )}
+      </Card>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} style={{ flex: 1, minWidth: 130 }} />
@@ -460,10 +546,10 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
       {bulkResult && <div style={{ fontSize: 12, color: "var(--su)", marginBottom: 10, padding: "8px 12px", background: "rgba(122,158,138,.1)", borderRadius: 6 }}>{bulkResult} <button onClick={() => setBulkResult(null)} style={{ background: "none", border: "none", color: "var(--m)", cursor: "pointer", marginLeft: 8 }}>×</button></div>}
 
       <Card style={{ padding: 0, overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 800 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 780 }}>
           <thead>
             <tr style={{ background: "var(--l)" }}>
-              {["Supplier", "Category", "Base", "DP", "Crew+OOT", "Total", "Paid", "Balance", "Due", "Status", ""].map(h => (
+              {["Supplier", "Category", "Contract", "DP", "Paid", "Balance", "Due Date", "Status", ""].map(h => (
                 <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500, whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
@@ -473,10 +559,8 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
               <tr key={s.id} style={{ borderTop: "1px solid var(--l)", background: i % 2 === 0 ? "var(--wh)" : "var(--cr)" }}>
                 <td style={{ padding: "11px 12px", fontWeight: 500 }}>{s.name}</td>
                 <td style={{ padding: "11px 12px", color: "var(--m)", fontSize: 12 }}>{s.category}</td>
-                <td style={{ padding: "11px 12px", fontSize: 12 }}>{php(s.baseAmount || s.total)}</td>
-                <td style={{ padding: "11px 12px", fontSize: 12 }}>{s.hasDP ? php(s.dpAmount) : "—"}</td>
-                <td style={{ padding: "11px 12px", fontSize: 12 }}>{php((num(s.crewMeals) + num(s.ootFee)))}</td>
                 <td style={{ padding: "11px 12px", fontWeight: 500 }}>{php(s.total)}</td>
+                <td style={{ padding: "11px 12px", fontSize: 12 }}>{s.hasDP ? php(s.dpAmount) : "—"}</td>
                 <td style={{ padding: "11px 12px", color: "var(--su)" }}>{php(s.paid)}</td>
                 <td style={{ padding: "11px 12px", color: "var(--r)", fontWeight: 500 }}>{php(s.total - (s.paid || 0))}</td>
                 <td style={{ padding: "11px 12px", color: "var(--m)", fontSize: 12 }}>{s.dueDate || "—"}</td>
@@ -491,7 +575,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
                 </td>
               </tr>
             ))}
-            {list.length === 0 && <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: "var(--m)" }}>No suppliers yet.</td></tr>}
+            {list.length === 0 && <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "var(--m)" }}>No suppliers yet.</td></tr>}
           </tbody>
         </table>
       </Card>
@@ -523,21 +607,56 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
 
       {modal === "view" && sel && (
         <Modal title={sel.name} onClose={() => setModal(null)} wide>
+          {/* Contract breakdown */}
+          <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontWeight: 500 }}>Contract Breakdown</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, textAlign: "center", marginBottom: 10 }}>
+              {[["Base", sel.baseAmount || sel.total], sel.hasCrew && ["Crew Meals", sel.crewMeals || 0], sel.hasOOT && ["OOT Fee", sel.ootFee || 0]].filter(Boolean).map(([l, v]) => (
+                <div key={l} style={{ background: "var(--wh)", borderRadius: 6, padding: "8px 4px" }}>
+                  <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{l}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{php(v)}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, textAlign: "center", borderTop: "1px solid #D8D0C4", paddingTop: 10 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Total Contract</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{php(sel.total)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Total Paid</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--su)" }}>{php(sel.paid || 0)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Balance Due</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--r)" }}>{php(sel.total - (sel.paid || 0))}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Details grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14 }}>
-            {[["Category", sel.category], ["Base Amount", php(sel.baseAmount || sel.total)], ["DP", sel.hasDP ? php(sel.dpAmount) : "None"], ["DP Due", sel.dpDueDate || "—"], ["DP Paid", sel.dpPaidDate || "—"], ["Crew Meals", php(sel.crewMeals || 0)], ["OOT Fee", php(sel.ootFee || 0)], ["Total Contract", php(sel.total)], ["Total Paid", php(sel.paid)], ["Balance", php(sel.total - sel.paid)], ["Final Due", sel.dueDate || "—"], ["Status", sel.status]].map(([l, v]) => (
+            {[["Category", sel.category], ["Final Due Date", sel.dueDate || "—"], ["Status", sel.status],
+              sel.hasDP && ["Downpayment", php(sel.dpAmount)], sel.hasDP && ["DP Due Date", sel.dpDueDate || "—"], sel.hasDP && ["DP Paid On", sel.dpPaidDate || "Not yet"]
+            ].filter(Boolean).map(([l, v]) => (
               <div key={l} style={{ background: "var(--l)", padding: 10, borderRadius: 6 }}>
                 <div style={{ fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{l}</div>
                 <div style={{ fontWeight: 500, fontSize: 13 }}>{v}</div>
               </div>
             ))}
           </div>
+
           {sel.notes && <p style={{ fontSize: 13, color: "var(--m)", background: "var(--l)", padding: 10, borderRadius: 6, marginBottom: 14 }}>{sel.notes}</p>}
-          <h4 style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)", marginBottom: 10 }}>Payment History</h4>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <h4 style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)" }}>Payment History</h4>
+            <Btn v="success" onClick={() => { setModal("pay"); setPf({ date: todayISO(), amount: "", note: "" }); }}>+ Log Payment</Btn>
+          </div>
           {!(sel.payments?.length)
-            ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 12 }}>No payments logged.</p>
+            ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 12 }}>No payments logged yet.</p>
             : <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
                 <thead><tr style={{ background: "var(--l)" }}>{["Date", "Amount", "Note"].map(h => <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>)}</tr></thead>
-                <tbody>{sel.payments.map((p, i) => (
+                <tbody>{[...sel.payments].sort((a, b) => a.date.localeCompare(b.date)).map((p, i) => (
                   <tr key={i} style={{ borderTop: "1px solid var(--l)" }}>
                     <td style={{ padding: "8px 10px" }}>{p.date}</td>
                     <td style={{ padding: "8px 10px", color: "var(--su)", fontWeight: 600 }}>{php(p.amount)}</td>
