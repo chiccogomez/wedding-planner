@@ -383,6 +383,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
   const [pf, setPf] = useState({ date: todayISO(), amount: "", note: "" });
+  const [editPayIdx, setEditPayIdx] = useState(null); // index of payment being edited
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
   const [bulkResult, setBulkResult] = useState(null);
@@ -424,15 +425,37 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
     setModal(null);
   };
 
+  const recomputeSupplier = (s, newPayments) => {
+    const pd = newPayments.reduce((a, x) => a + num(x.amount), 0);
+    return { ...s, payments: newPayments, paid: pd, status: pd === 0 ? "Unpaid" : pd >= s.total ? "Fully Paid" : "Partial" };
+  };
+
   const logPay = () => {
+    if (!pf.amount) return;
     const p = { date: pf.date, amount: num(pf.amount), note: pf.note };
     setSuppliers(prev => prev.map(s => {
       if (s.id !== sel.id) return s;
-      const ps = [...(s.payments || []), p];
-      const pd = ps.reduce((a, x) => a + x.amount, 0);
-      return { ...s, payments: ps, paid: pd, status: pd === 0 ? "Unpaid" : pd >= s.total ? "Fully Paid" : "Partial" };
+      let ps;
+      if (editPayIdx !== null) {
+        ps = s.payments.map((x, i) => i === editPayIdx ? p : x);
+      } else {
+        ps = [...(s.payments || []), p];
+      }
+      return recomputeSupplier(s, ps);
     }));
-    setModal(null);
+    // Keep view modal open after saving; go back to it
+    setEditPayIdx(null);
+    setPf({ date: todayISO(), amount: "", note: "" });
+    setModal("view");
+  };
+
+  const delPayment = (payIdx) => {
+    if (!window.confirm("Delete this payment?")) return;
+    setSuppliers(prev => prev.map(s => {
+      if (s.id !== sel.id) return s;
+      const ps = s.payments.filter((_, i) => i !== payIdx);
+      return recomputeSupplier(s, ps);
+    }));
   };
 
   const del = id => { if (window.confirm("Delete supplier?")) setSuppliers(p => p.filter(s => s.id !== id)); };
@@ -568,7 +591,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
                 <td style={{ padding: "11px 12px" }}>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     <Btn onClick={() => { setSel(s); setModal("view"); }} v="ghost">View</Btn>
-                    <Btn onClick={() => { setSel(s); setPf({ date: todayISO(), amount: "", note: "" }); setModal("pay"); }} v="success">+Pay</Btn>
+                    <Btn onClick={() => { setSel(s); setEditPayIdx(null); setPf({ date: todayISO(), amount: "", note: "" }); setModal("pay"); }} v="success">+Pay</Btn>
                     <Btn onClick={() => { setForm({ ...s }); setSel(s); setModal("form"); }} v="secondary">Edit</Btn>
                     <Btn onClick={() => del(s.id)} v="danger">Del</Btn>
                   </div>
@@ -587,7 +610,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
       )}
 
       {modal === "pay" && sel && (
-        <Modal title={`Log Payment — ${sel.name}`} onClose={() => setModal(null)}>
+        <Modal title={editPayIdx !== null ? `Edit Payment — ${sel.name}` : `Log Payment — ${sel.name}`} onClose={() => { setModal("view"); setEditPayIdx(null); }}>
           <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 13 }}>
             {[["Contract", sel.total, "var(--ink)"], ["Paid", sel.paid, "var(--su)"], ["Remaining", sel.total - (sel.paid || 0), "var(--r)"]].map(([l, v, c]) => (
               <div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -599,19 +622,22 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
           <Field label="Amount (₱)"><input type="number" value={pf.amount} onChange={e => setPf(f => ({ ...f, amount: e.target.value }))} placeholder="0" /></Field>
           <Field label="Note"><input value={pf.note} onChange={e => setPf(f => ({ ...f, note: e.target.value }))} placeholder="e.g. 2nd tranche" /></Field>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <Btn v="ghost" onClick={() => setModal(null)}>Cancel</Btn>
-            <Btn v="success" onClick={logPay}>Log Payment</Btn>
+            <Btn v="ghost" onClick={() => { setModal("view"); setEditPayIdx(null); }}>Cancel</Btn>
+            <Btn v="success" onClick={logPay}>{editPayIdx !== null ? "Save Changes" : "Log Payment"}</Btn>
           </div>
         </Modal>
       )}
 
-      {modal === "view" && sel && (
-        <Modal title={sel.name} onClose={() => setModal(null)} wide>
+      {modal === "view" && sel && (() => {
+        // Keep sel in sync with latest supplier data (payments may have changed)
+        const liveSel = suppliers.find(s => s.id === sel.id) || sel;
+        return (
+        <Modal title={liveSel.name} onClose={() => setModal(null)} wide>
           {/* Contract breakdown */}
           <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontWeight: 500 }}>Contract Breakdown</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, textAlign: "center", marginBottom: 10 }}>
-              {[["Base", sel.baseAmount || sel.total], sel.hasCrew && ["Crew Meals", sel.crewMeals || 0], sel.hasOOT && ["OOT Fee", sel.ootFee || 0]].filter(Boolean).map(([l, v]) => (
+              {[["Base", liveSel.baseAmount || liveSel.total], liveSel.hasCrew && ["Crew Meals", liveSel.crewMeals || 0], liveSel.hasOOT && ["OOT Fee", liveSel.ootFee || 0]].filter(Boolean).map(([l, v]) => (
                 <div key={l} style={{ background: "var(--wh)", borderRadius: 6, padding: "8px 4px" }}>
                   <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{l}</div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{php(v)}</div>
@@ -621,23 +647,23 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, textAlign: "center", borderTop: "1px solid #D8D0C4", paddingTop: 10 }}>
               <div>
                 <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Total Contract</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{php(sel.total)}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{php(liveSel.total)}</div>
               </div>
               <div>
                 <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Total Paid</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--su)" }}>{php(sel.paid || 0)}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--su)" }}>{php(liveSel.paid || 0)}</div>
               </div>
               <div>
                 <div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Balance Due</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--r)" }}>{php(sel.total - (sel.paid || 0))}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "var(--r)" }}>{php(liveSel.total - (liveSel.paid || 0))}</div>
               </div>
             </div>
           </div>
 
           {/* Details grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14 }}>
-            {[["Category", sel.category], ["Final Due Date", sel.dueDate || "—"], ["Status", sel.status],
-              sel.hasDP && ["Downpayment", php(sel.dpAmount)], sel.hasDP && ["DP Due Date", sel.dpDueDate || "—"], sel.hasDP && ["DP Paid On", sel.dpPaidDate || "Not yet"]
+            {[["Category", liveSel.category], ["Final Due Date", liveSel.dueDate || "—"], ["Status", liveSel.status],
+              liveSel.hasDP && ["Downpayment", php(liveSel.dpAmount)], liveSel.hasDP && ["DP Due Date", liveSel.dpDueDate || "—"], liveSel.hasDP && ["DP Paid On", liveSel.dpPaidDate || "Not yet"]
             ].filter(Boolean).map(([l, v]) => (
               <div key={l} style={{ background: "var(--l)", padding: 10, borderRadius: 6 }}>
                 <div style={{ fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>{l}</div>
@@ -646,26 +672,39 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
             ))}
           </div>
 
-          {sel.notes && <p style={{ fontSize: 13, color: "var(--m)", background: "var(--l)", padding: 10, borderRadius: 6, marginBottom: 14 }}>{sel.notes}</p>}
+          {liveSel.notes && <p style={{ fontSize: 13, color: "var(--m)", background: "var(--l)", padding: 10, borderRadius: 6, marginBottom: 14 }}>{liveSel.notes}</p>}
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <h4 style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)" }}>Payment History</h4>
-            <Btn v="success" onClick={() => { setModal("pay"); setPf({ date: todayISO(), amount: "", note: "" }); }}>+ Log Payment</Btn>
+            <Btn v="success" onClick={() => { setEditPayIdx(null); setPf({ date: todayISO(), amount: "", note: "" }); setModal("pay"); }}>+ Log Payment</Btn>
           </div>
-          {!(sel.payments?.length)
+          {!(liveSel.payments?.length)
             ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 12 }}>No payments logged yet.</p>
             : <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-                <thead><tr style={{ background: "var(--l)" }}>{["Date", "Amount", "Note"].map(h => <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>)}</tr></thead>
-                <tbody>{[...sel.payments].sort((a, b) => a.date.localeCompare(b.date)).map((p, i) => (
-                  <tr key={i} style={{ borderTop: "1px solid var(--l)" }}>
-                    <td style={{ padding: "8px 10px" }}>{p.date}</td>
-                    <td style={{ padding: "8px 10px", color: "var(--su)", fontWeight: 600 }}>{php(p.amount)}</td>
-                    <td style={{ padding: "8px 10px", color: "var(--m)" }}>{p.note || "—"}</td>
+                <thead>
+                  <tr style={{ background: "var(--l)" }}>
+                    {["Date", "Amount", "Note", ""].map(h => <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>)}
                   </tr>
-                ))}</tbody>
+                </thead>
+                <tbody>
+                  {liveSel.payments.map((p, i) => (
+                    <tr key={i} style={{ borderTop: "1px solid var(--l)" }}>
+                      <td style={{ padding: "8px 10px" }}>{p.date}</td>
+                      <td style={{ padding: "8px 10px", color: "var(--su)", fontWeight: 600 }}>{php(p.amount)}</td>
+                      <td style={{ padding: "8px 10px", color: "var(--m)" }}>{p.note || "—"}</td>
+                      <td style={{ padding: "8px 10px" }}>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <Btn v="secondary" onClick={() => { setEditPayIdx(i); setPf({ date: p.date, amount: p.amount, note: p.note || "" }); setModal("pay"); }}>Edit</Btn>
+                          <Btn v="danger" onClick={() => delPayment(i)}>Del</Btn>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>}
         </Modal>
-      )}
+        );
+      })()}
     </div>
   );
 }
