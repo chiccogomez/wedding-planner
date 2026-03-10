@@ -219,25 +219,112 @@ function Countdown() {
   );
 }
 
-/* ─── Landing ─────────────────────────────────────────────────────────────── */
+/* ─── Public Landing Page ─────────────────────────────────────────────────── */
 function Landing({ onEnter }) {
+  const [adminClicks, setAdminClicks] = useState(0);
+
+  const handleLogoClick = () => {
+    const next = adminClicks + 1;
+    setAdminClicks(next);
+    if (next >= 5) { setAdminClicks(0); onEnter(); }
+  };
+
+  const details = [
+    { icon: "✦", label: "Ceremony", value: "Our Lady of Lourdes Parish", sub: "3:00 PM" },
+    { icon: "✦", label: "Reception", value: "Antonio's Restaurant", sub: "Tagaytay City" },
+    { icon: "✦", label: "Dress Code", value: "Black Tie", sub: "Formal attire" },
+  ];
+
   return (
-    <div style={{ minHeight: "100vh", background: "var(--cr)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, position: "relative", overflow: "hidden" }}>
-      {[180, 320, 460].map((sz, i) => (
-        <div key={i} style={{ position: "absolute", width: sz, height: sz, borderRadius: "50%", border: `1px solid rgba(196,150,122,${.12 - i * .04})`, top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }} />
-      ))}
-      <div className="fade" style={{ textAlign: "center", maxWidth: 500, zIndex: 1 }}>
-        <p style={{ fontSize: 10, letterSpacing: 5, color: "var(--m)", textTransform: "uppercase", marginBottom: 18 }}>January 15, 2027 · Tagaytay</p>
-        <h1 className="sf" style={{ fontSize: 62, fontWeight: 300, lineHeight: 1.1, color: "var(--ink)" }}>Chicco<br /><span style={{ fontSize: 40, color: "var(--g)" }}>&amp;</span><br />Michelle</h1>
-        <div style={{ width: 50, height: 1, background: "var(--g)", margin: "22px auto" }} />
-        <p style={{ fontFamily: "Georgia,serif", fontSize: 14, color: "var(--m)", fontStyle: "italic", marginBottom: 34, lineHeight: 1.9 }}>Our Lady of Lourdes Parish · Antonio's Restaurant</p>
-        <div style={{ marginBottom: 44 }}><Countdown /></div>
-        <button onClick={onEnter} style={{ background: "var(--ink)", color: "var(--cr)", border: "none", padding: "13px 38px", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", borderRadius: 2, cursor: "pointer" }}
-          onMouseEnter={e => e.currentTarget.style.background = "var(--r)"}
-          onMouseLeave={e => e.currentTarget.style.background = "var(--ink)"}>
-          Enter Planning Dashboard
-        </button>
-        <p style={{ marginTop: 14, fontSize: 11, color: "#BFB5AB" }}>Private · Chicco &amp; Michelle only</p>
+    <div style={{ minHeight: "100vh", background: "var(--cr)", fontFamily: "'Jost', sans-serif", color: "var(--ink)" }}>
+      {/* ── Hero ── */}
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", position: "relative", overflow: "hidden", textAlign: "center" }}>
+        {/* decorative rings */}
+        {[200, 360, 520].map((sz, i) => (
+          <div key={i} style={{ position: "absolute", width: sz, height: sz, borderRadius: "50%", border: `1px solid rgba(196,150,122,${.10 - i * .03})`, top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }} />
+        ))}
+
+        <div className="fade" style={{ zIndex: 1, maxWidth: 560 }}>
+          {/* date pill */}
+          <p style={{ fontSize: 9, letterSpacing: 6, color: "var(--r)", textTransform: "uppercase", marginBottom: 28, fontWeight: 500 }}>
+            January 15, 2027
+          </p>
+
+          {/* monogram / logo — click 5× to open admin */}
+          <div onClick={handleLogoClick} style={{ cursor: "default", userSelect: "none", marginBottom: 10 }}>
+            <h1 className="sf" style={{ fontSize: 72, fontWeight: 300, lineHeight: 1, color: "var(--ink)", letterSpacing: -1 }}>
+              C <span style={{ color: "var(--g)", fontSize: 52 }}>&amp;</span> M
+            </h1>
+          </div>
+
+          <h2 className="sf" style={{ fontSize: 22, fontWeight: 300, letterSpacing: 4, color: "var(--m)", marginBottom: 6, textTransform: "uppercase" }}>
+            Chicco &amp; Michelle
+          </h2>
+
+          <div style={{ width: 44, height: 1, background: "linear-gradient(to right, transparent, var(--g), transparent)", margin: "24px auto" }} />
+
+          <p className="sf" style={{ fontSize: 16, color: "var(--m)", fontStyle: "italic", lineHeight: 2, marginBottom: 40 }}>
+            Together with their families,<br />
+            we joyfully invite you to celebrate<br />
+            the beginning of their forever.
+          </p>
+
+          {/* countdown */}
+          <div style={{ marginBottom: 52 }}>
+            <Countdown />
+          </div>
+
+          {/* save the date badge */}
+          <div style={{ display: "inline-block", border: "1px solid var(--r)", borderRadius: 2, padding: "10px 28px", fontSize: 9, letterSpacing: 5, textTransform: "uppercase", color: "var(--r)", marginBottom: 8 }}>
+            Save the Date
+          </div>
+        </div>
+
+        {/* scroll cue */}
+        <div style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", fontSize: 10, letterSpacing: 3, color: "var(--m)", textTransform: "uppercase", opacity: 0.6 }}>
+          scroll ↓
+        </div>
+      </div>
+
+      {/* ── Details Section ── */}
+      <div style={{ background: "var(--ink)", color: "var(--cr)", padding: "72px 24px", textAlign: "center" }}>
+        <p style={{ fontSize: 9, letterSpacing: 6, color: "var(--g)", textTransform: "uppercase", marginBottom: 14 }}>Wedding Details</p>
+        <h3 className="sf" style={{ fontSize: 36, fontWeight: 300, marginBottom: 52, color: "var(--cr)" }}>Join Us in Tagaytay</h3>
+
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 40, maxWidth: 780, margin: "0 auto" }}>
+          {details.map((d, i) => (
+            <div key={i} style={{ flex: "1 1 200px", maxWidth: 240 }}>
+              <div style={{ fontSize: 10, color: "var(--r)", marginBottom: 12, letterSpacing: 3 }}>{d.icon}</div>
+              <p style={{ fontSize: 9, letterSpacing: 5, color: "var(--g)", textTransform: "uppercase", marginBottom: 8 }}>{d.label}</p>
+              <p className="sf" style={{ fontSize: 20, fontWeight: 300, color: "var(--cr)", marginBottom: 4 }}>{d.value}</p>
+              <p style={{ fontSize: 12, color: "#8A8078" }}>{d.sub}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Message Section ── */}
+      <div style={{ padding: "72px 24px", textAlign: "center", maxWidth: 620, margin: "0 auto" }}>
+        <p style={{ fontSize: 9, letterSpacing: 6, color: "var(--r)", textTransform: "uppercase", marginBottom: 14 }}>A Note From Us</p>
+        <h3 className="sf" style={{ fontSize: 36, fontWeight: 300, marginBottom: 28, color: "var(--ink)" }}>
+          We can't wait to celebrate<br />with you.
+        </h3>
+        <p style={{ fontSize: 14, color: "var(--m)", lineHeight: 2, fontFamily: "Georgia, serif", fontStyle: "italic" }}>
+          "Two souls, one heart. Thank you for being part of our story — your presence on our special day means everything to us."
+        </p>
+        <div style={{ width: 44, height: 1, background: "linear-gradient(to right, transparent, var(--g), transparent)", margin: "36px auto" }} />
+        <p className="sf" style={{ fontSize: 28, fontWeight: 300, color: "var(--ink)", letterSpacing: 2 }}>Chicco &amp; Michelle</p>
+        <p style={{ fontSize: 10, letterSpacing: 4, color: "var(--m)", textTransform: "uppercase", marginTop: 8 }}>January 15, 2027</p>
+      </div>
+
+      {/* ── Footer ── */}
+      <div style={{ background: "var(--l)", borderTop: "1px solid #D8D0C4", padding: "28px 24px", textAlign: "center" }}>
+        <p style={{ fontSize: 10, letterSpacing: 3, color: "var(--m)", textTransform: "uppercase" }}>
+          Chicco &amp; Michelle · 15.01.2027 · Tagaytay
+        </p>
+        <p style={{ fontSize: 11, color: "#C0B4A8", marginTop: 8 }}>
+          More details to follow — watch this space.
+        </p>
       </div>
     </div>
   );
