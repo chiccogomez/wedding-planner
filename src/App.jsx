@@ -366,10 +366,14 @@ const FlowerLogo = ({ size = 80, color = "#C4967A" }) => (
 function Landing({ onEnter }) {
   const [adminClicks, setAdminClicks] = useState(0);
   const [rsvpName, setRsvpName] = useState("");
-  const [rsvpAttending, setRsvpAttending] = useState(null); // true/false/null
+  const [rsvpAttending, setRsvpAttending] = useState(null);
   const [rsvpNote, setRsvpNote] = useState("");
   const [rsvpSent, setRsvpSent] = useState(false);
   const [rsvpError, setRsvpError] = useState("");
+  const [quizIdx, setQuizIdx] = useState(0);
+  const [quizAns, setQuizAns] = useState(null);
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizDone, setQuizDone] = useState(false);
 
   const handleLogoClick = () => {
     const next = adminClicks + 1;
@@ -380,175 +384,356 @@ function Landing({ onEnter }) {
   const handleRsvp = () => {
     if (!rsvpName.trim()) { setRsvpError("Please enter your name."); return; }
     if (rsvpAttending === null) { setRsvpError("Please select if you'll be attending."); return; }
-    // Save RSVP to localStorage so it can be reviewed in the dashboard
     const rsvps = JSON.parse(localStorage.getItem("cRSVP") || "[]");
     rsvps.push({ id: Date.now(), name: rsvpName.trim(), attending: rsvpAttending, note: rsvpNote.trim(), submittedAt: new Date().toISOString() });
     localStorage.setItem("cRSVP", JSON.stringify(rsvps));
     setRsvpSent(true);
   };
 
+  const quiz = [
+    { q: "Where did Chicco and Michelle first meet?", opts: ["At a coffee shop", "Through mutual friends", "At work", "At a concert"], ans: 1 },
+    { q: "What is Chicco's favorite thing to cook?", opts: ["Pasta", "BBQ", "Sinigang", "Breakfast"], ans: 2 },
+    { q: "What does Michelle do when she's stressed?", opts: ["Retail therapy", "Binge-watch K-dramas", "Go for a run", "Call her mom"], ans: 1 },
+    { q: "How long have Chicco and Michelle been together?", opts: ["2 years", "4 years", "6 years", "8 years"], ans: 2 },
+    { q: "What is the couple's dog's name?", opts: ["Coco", "Lulu", "Mocha", "Biscuit"], ans: 1 },
+  ];
+
+  const handleQuizAns = (i) => {
+    if (quizAns !== null) return;
+    setQuizAns(i);
+    if (i === quiz[quizIdx].ans) setQuizScore(s => s + 1);
+  };
+
+  const nextQuiz = () => {
+    if (quizIdx + 1 >= quiz.length) { setQuizDone(true); }
+    else { setQuizIdx(q => q + 1); setQuizAns(null); }
+  };
+
   const divider = (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "40px auto", maxWidth: 320 }}>
-      <div style={{ flex: 1, height: 1, background: "linear-gradient(to right, transparent, #C4967A55)" }} />
-      <FlowerLogo size={22} color="#C4967A" />
-      <div style={{ flex: 1, height: 1, background: "linear-gradient(to left, transparent, #C4967A55)" }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "52px auto", maxWidth: 340 }}>
+      <div style={{ flex: 1, height: 1, background: "linear-gradient(to right, transparent, #C4967A66)" }} />
+      <FlowerLogo size={20} color="#C4967A" />
+      <div style={{ flex: 1, height: 1, background: "linear-gradient(to left, transparent, #C4967A66)" }} />
+    </div>
+  );
+
+  const SectionLabel = ({ children }) => (
+    <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 12, fontWeight: 500 }}>{children}</p>
+  );
+
+  const MapCard = ({ name, address, embedSrc, color }) => (
+    <div style={{ flex: "1 1 280px", borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(46,37,32,.08)", border: "1px solid #E8DDD4" }}>
+      <div style={{ background: color, padding: "14px 20px" }}>
+        <p style={{ fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,.75)", textTransform: "uppercase", marginBottom: 4 }}>{name}</p>
+        <p style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>{address}</p>
+      </div>
+      <iframe
+        title={name}
+        src={embedSrc}
+        width="100%" height="220"
+        style={{ border: 0, display: "block" }}
+        allowFullScreen="" loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
     </div>
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F5EFE6", fontFamily: "'Jost', sans-serif", color: "#2E2520" }}>
+    <div style={{ minHeight: "100vh", background: "#F7F2EA", fontFamily: "'Jost', sans-serif", color: "#2E2520" }}>
 
       {/* ── Hero ── */}
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px 60px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        {/* soft background gradient blobs */}
-        <div style={{ position: "absolute", top: "10%", left: "5%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(196,150,122,.12) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "10%", right: "5%", width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(122,158,173,.10) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(196,150,122,.13) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(to right, #C4967A, #B8976A, #7A9EAD, #C4967A)" }} />
 
         <div className="fade" style={{ zIndex: 1, maxWidth: 480 }}>
-          {/* flower logo — click 5× to open admin */}
-          <div onClick={handleLogoClick} style={{ cursor: "default", userSelect: "none", marginBottom: 28, display: "flex", justifyContent: "center" }}>
-            <FlowerLogo size={72} color="#C4967A" />
+          <div onClick={handleLogoClick} style={{ cursor: "default", userSelect: "none", marginBottom: 32, display: "flex", justifyContent: "center" }}>
+            <FlowerLogo size={76} color="#C4967A" />
           </div>
-
-          <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 20 }}>
-            Together with their families
-          </p>
-
-          <h1 className="sf" style={{ fontSize: 58, fontWeight: 300, lineHeight: 1.05, color: "#2E2520", marginBottom: 6 }}>
-            Chicco
-          </h1>
-          <p className="sf" style={{ fontSize: 24, color: "#B8976A", fontStyle: "italic", marginBottom: 4 }}>&amp;</p>
-          <h1 className="sf" style={{ fontSize: 58, fontWeight: 300, lineHeight: 1.05, color: "#2E2520", marginBottom: 24 }}>
-            Michelle
-          </h1>
-
-          <p style={{ fontSize: 9, letterSpacing: 6, color: "#7A6E68", textTransform: "uppercase", marginBottom: 36 }}>
-            Request the honour of your presence
-          </p>
-
-          {/* countdown */}
+          <p style={{ fontSize: 9, letterSpacing: 7, color: "#C4967A", textTransform: "uppercase", marginBottom: 22 }}>Together with their families</p>
+          <h1 className="sf" style={{ fontSize: 64, fontWeight: 300, lineHeight: 1, color: "#2E2520", marginBottom: 6 }}>Chicco</h1>
+          <p className="sf" style={{ fontSize: 28, color: "#B8976A", fontStyle: "italic", margin: "4px 0" }}>&amp;</p>
+          <h1 className="sf" style={{ fontSize: 64, fontWeight: 300, lineHeight: 1, color: "#2E2520", marginBottom: 28 }}>Michelle</h1>
+          <p style={{ fontSize: 9, letterSpacing: 6, color: "#9A8E88", textTransform: "uppercase", marginBottom: 40 }}>Request the honour of your presence</p>
           <Countdown />
-
-          <p style={{ fontSize: 11, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase", marginTop: 32 }}>
-            January 15, 2027 · Tagaytay
-          </p>
+          <div style={{ marginTop: 36, display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(196,150,122,.12)", border: "1px solid rgba(196,150,122,.3)", borderRadius: 3, padding: "10px 24px" }}>
+            <span style={{ fontSize: 10, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>January 15, 2027 · Tagaytay</span>
+          </div>
         </div>
-
-        <div style={{ position: "absolute", bottom: 28, left: "50%", transform: "translateX(-50%)", fontSize: 9, letterSpacing: 4, color: "#B8A898", textTransform: "uppercase" }}>scroll ↓</div>
+        <div style={{ position: "absolute", bottom: 28, left: "50%", transform: "translateX(-50%)", fontSize: 9, letterSpacing: 4, color: "#C4B8AC", textTransform: "uppercase" }}>scroll ↓</div>
       </div>
 
-      {/* ── Tagaytay quote + Taal sketch ── */}
-      <div style={{ background: "#EDE7D9", padding: "72px 24px", textAlign: "center" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
-          <TaalSketch width={Math.min(480, typeof window !== "undefined" ? window.innerWidth - 48 : 420)} />
+      {/* ── Taal + Quote ── */}
+      <div style={{ background: "linear-gradient(135deg, #EDE7D9 0%, #E8DDD0 100%)", padding: "72px 24px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(196,150,122,.08)", pointerEvents: "none" }} />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
+          <TaalSketch width={Math.min(520, typeof window !== "undefined" ? window.innerWidth - 48 : 460)} />
         </div>
-        <p style={{ fontSize: 9, letterSpacing: 5, color: "#C4967A", textTransform: "uppercase", marginBottom: 20, opacity: 0.7 }}>Taal Lake · Tagaytay</p>
-        <p className="sf" style={{ fontSize: 22, fontWeight: 300, fontStyle: "italic", color: "#7A6E68", lineHeight: 1.9, maxWidth: 480, margin: "0 auto" }}>
+        <p style={{ fontSize: 9, letterSpacing: 5, color: "#C4967A", textTransform: "uppercase", marginBottom: 20 }}>Taal Lake · Tagaytay City, Cavite</p>
+        <p className="sf" style={{ fontSize: 23, fontWeight: 300, fontStyle: "italic", color: "#6E6258", lineHeight: 2, maxWidth: 500, margin: "0 auto" }}>
           "Join us in celebrating our union beneath the open skies of Tagaytay, where the lake meets the mountains and the evening glows golden."
         </p>
       </div>
 
+      {/* ── About Us ── */}
+      <div style={{ padding: "80px 24px", maxWidth: 720, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 52 }}>
+          <SectionLabel>Our Story</SectionLabel>
+          <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520" }}>The People Behind the Love</h2>
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 24, marginBottom: 48 }}>
+          {/* Chicco card */}
+          <div style={{ flex: "1 1 260px", background: "#fff", borderRadius: 10, overflow: "hidden", boxShadow: "0 4px 20px rgba(46,37,32,.07)", border: "1px solid #EDE7D9" }}>
+            <div style={{ height: 8, background: "linear-gradient(to right, #C4967A, #B8976A)" }} />
+            <div style={{ padding: 28 }}>
+              {/* Photo placeholder */}
+              <div style={{ width: "100%", aspectRatio: "4/3", background: "linear-gradient(135deg, #EDE7D9, #E0D6C8)", borderRadius: 6, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #C4B8AC" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 28, marginBottom: 6, opacity: 0.4 }}>📷</div>
+                  <p style={{ fontSize: 10, letterSpacing: 2, color: "#B8A898", textTransform: "uppercase" }}>Photo coming soon</p>
+                </div>
+              </div>
+              <p style={{ fontSize: 9, letterSpacing: 5, color: "#C4967A", textTransform: "uppercase", marginBottom: 8 }}>The Groom</p>
+              <h3 className="sf" style={{ fontSize: 28, fontWeight: 300, color: "#2E2520", marginBottom: 12 }}>Manuel Angelo "Chicco" Gomez</h3>
+              <p style={{ fontSize: 13, color: "#9A8E88", lineHeight: 1.8, fontStyle: "italic", fontFamily: "Georgia, serif" }}>
+                [A few words about Chicco — his personality, what he loves, what makes him laugh. Placeholder until you're ready to fill this in.]
+              </p>
+              <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {["☕ Coffee lover", "🎵 Music", "🐶 Dog dad"].map(t => (
+                  <span key={t} style={{ fontSize: 10, padding: "4px 10px", background: "rgba(196,150,122,.10)", border: "1px solid rgba(196,150,122,.2)", borderRadius: 20, color: "#C4967A" }}>{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Michelle card */}
+          <div style={{ flex: "1 1 260px", background: "#fff", borderRadius: 10, overflow: "hidden", boxShadow: "0 4px 20px rgba(46,37,32,.07)", border: "1px solid #EDE7D9" }}>
+            <div style={{ height: 8, background: "linear-gradient(to right, #7A9EAD, #8AAEBA)" }} />
+            <div style={{ padding: 28 }}>
+              <div style={{ width: "100%", aspectRatio: "4/3", background: "linear-gradient(135deg, #E0EAF0, #D4E4EC)", borderRadius: 6, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #B4CADB" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 28, marginBottom: 6, opacity: 0.4 }}>📷</div>
+                  <p style={{ fontSize: 10, letterSpacing: 2, color: "#A4BACC", textTransform: "uppercase" }}>Photo coming soon</p>
+                </div>
+              </div>
+              <p style={{ fontSize: 9, letterSpacing: 5, color: "#7A9EAD", textTransform: "uppercase", marginBottom: 8 }}>The Bride</p>
+              <h3 className="sf" style={{ fontSize: 28, fontWeight: 300, color: "#2E2520", marginBottom: 12 }}>Michelle [Surname]</h3>
+              <p style={{ fontSize: 13, color: "#9A8E88", lineHeight: 1.8, fontStyle: "italic", fontFamily: "Georgia, serif" }}>
+                [A few words about Michelle — her warmth, her passions, her infectious smile. Placeholder until you're ready to fill this in.]
+              </p>
+              <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {["🌸 Flowers", "📚 Reader", "🍜 Foodie"].map(t => (
+                  <span key={t} style={{ fontSize: 10, padding: "4px 10px", background: "rgba(122,158,173,.10)", border: "1px solid rgba(122,158,173,.2)", borderRadius: 20, color: "#7A9EAD" }}>{t}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Together blurb */}
+        <div style={{ background: "linear-gradient(135deg, rgba(196,150,122,.08), rgba(122,158,173,.08))", borderRadius: 10, padding: "36px 32px", textAlign: "center", border: "1px solid #E8DDD4" }}>
+          <FlowerLogo size={32} color="#B8976A" />
+          <h3 className="sf" style={{ fontSize: 26, fontWeight: 300, color: "#2E2520", margin: "16px 0 12px" }}>Together</h3>
+          <p style={{ fontSize: 13, color: "#9A8E88", lineHeight: 2, fontFamily: "Georgia, serif", fontStyle: "italic", maxWidth: 480, margin: "0 auto" }}>
+            [The story of how Chicco and Michelle met, what makes them work, a funny memory, or a line about what their relationship means. To be filled in soon.]
+          </p>
+        </div>
+      </div>
+
+      {/* ── Prenup Gallery ── */}
+      <div style={{ background: "linear-gradient(135deg, #2E2520, #3E342E)", padding: "80px 24px", textAlign: "center" }}>
+        <SectionLabel>Prenuptial</SectionLabel>
+        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#F7F2EA", marginBottom: 12 }}>Before the Big Day</h2>
+        <p style={{ fontSize: 13, color: "#9A8E88", marginBottom: 48, letterSpacing: 1 }}>Photos coming soon</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", maxWidth: 720, margin: "0 auto" }}>
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} style={{ flex: "1 1 180px", maxWidth: 220, aspectRatio: "3/4", background: "rgba(255,255,255,.04)", borderRadius: 6, border: "1px dashed rgba(196,150,122,.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 22, opacity: 0.25, marginBottom: 6 }}>🖼</div>
+                <p style={{ fontSize: 9, color: "rgba(196,150,122,.4)", letterSpacing: 2, textTransform: "uppercase" }}>Soon</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p style={{ fontSize: 11, color: "rgba(196,150,122,.4)", marginTop: 32, letterSpacing: 2, textTransform: "uppercase" }}>Prenup shoot — TBD</p>
+      </div>
+
       {/* ── The Celebration ── */}
-      <div style={{ padding: "72px 24px", textAlign: "center", maxWidth: 480, margin: "0 auto" }}>
-        <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 12 }}>The Celebration</p>
-        <h2 className="sf" style={{ fontSize: 38, fontWeight: 300, color: "#2E2520", marginBottom: 40 }}>January 15, 2027</h2>
+      <div style={{ padding: "80px 24px", textAlign: "center", maxWidth: 540, margin: "0 auto" }}>
+        <SectionLabel>The Celebration</SectionLabel>
+        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 48 }}>January 15, 2027</h2>
 
-        {/* Church sketch */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-          <ChurchSketch width={340} />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <ChurchSketch width={360} />
         </div>
 
-        {/* Ceremony card */}
-        <div style={{ border: "1px solid #D8CFC4", borderRadius: 4, padding: "24px 28px", marginBottom: 16, textAlign: "left", background: "#FDFAF5" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 500 }}>3:00 PM</span>
-            <div style={{ width: 1, height: 12, background: "#D8CFC4" }} />
-            <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase", fontWeight: 500 }}>Wedding Ceremony</span>
+        {/* Ceremony */}
+        <div style={{ borderRadius: 8, marginBottom: 16, textAlign: "left", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", overflow: "hidden", border: "1px solid #EDE7D9" }}>
+          <div style={{ height: 4, background: "linear-gradient(to right, #C4967A, #B8976A)" }} />
+          <div style={{ padding: "22px 26px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 600 }}>3:00 PM</span>
+              <div style={{ width: 1, height: 12, background: "#E0D8D0" }} />
+              <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Wedding Ceremony</span>
+            </div>
+            <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Our Lady of Lourdes Parish</p>
+            <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
           </div>
-          <p className="sf" style={{ fontSize: 22, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Our Lady of Lourdes Parish</p>
-          <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
         </div>
 
-        {/* Reception card */}
-        <div style={{ border: "1px solid #D8CFC4", borderRadius: 4, padding: "24px 28px", textAlign: "left", background: "#FDFAF5" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 500 }}>5:00 PM</span>
-            <div style={{ width: 1, height: 12, background: "#D8CFC4" }} />
-            <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase", fontWeight: 500 }}>Cocktails &amp; Dinner</span>
+        {/* Reception */}
+        <div style={{ borderRadius: 8, textAlign: "left", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", overflow: "hidden", border: "1px solid #EDE7D9" }}>
+          <div style={{ height: 4, background: "linear-gradient(to right, #7A9EAD, #8AAEBA)" }} />
+          <div style={{ padding: "22px 26px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 600 }}>5:00 PM</span>
+              <div style={{ width: 1, height: 12, background: "#E0D8D0" }} />
+              <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Cocktails &amp; Dinner</span>
+            </div>
+            <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Antonio's Restaurant</p>
+            <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
           </div>
-          <p className="sf" style={{ fontSize: 22, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Antonio's Restaurant</p>
-          <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
         </div>
 
         {divider}
 
-        {/* Dress code accent */}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(196,150,122,.10)", border: "1px solid rgba(196,150,122,.25)", borderRadius: 3, padding: "10px 22px" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(196,150,122,.10)", border: "1px solid rgba(196,150,122,.3)", borderRadius: 4, padding: "12px 28px" }}>
           <span style={{ fontSize: 9, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>Dress Code</span>
-          <div style={{ width: 1, height: 12, background: "#C4967A55" }} />
-          <span className="sf" style={{ fontSize: 16, color: "#2E2520", fontStyle: "italic" }}>Black Tie</span>
+          <div style={{ width: 1, height: 14, background: "#C4967A55" }} />
+          <span className="sf" style={{ fontSize: 17, color: "#2E2520", fontStyle: "italic" }}>Black Tie</span>
+        </div>
+      </div>
+
+      {/* ── Maps ── */}
+      <div style={{ background: "#EDE7D9", padding: "80px 24px" }}>
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <SectionLabel>Getting There</SectionLabel>
+            <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520" }}>Find Your Way</h2>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+            <MapCard
+              name="Wedding Ceremony"
+              address="Our Lady of Lourdes Parish, Tagaytay"
+              color="#C4967A"
+              embedSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3868.7!2d120.9623!3d14.1112!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b1b7d2f0001%3A0x1234567890abcdef!2sOur+Lady+of+Lourdes+Parish+Tagaytay!5e0!3m2!1sen!2sph!4v1699000000000!5m2!1sen!2sph"
+            />
+            <MapCard
+              name="Cocktails & Reception"
+              address="Antonio's Restaurant, Tagaytay"
+              color="#7A9EAD"
+              embedSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3868.5!2d120.9602!3d14.1145!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b2c3a4f5678%3A0xabcdef1234567890!2sAntonio%27s+Restaurant+Tagaytay!5e0!3m2!1sen!2sph!4v1699000000001!5m2!1sen!2sph"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Fun Quiz ── */}
+      <div style={{ padding: "80px 24px", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
+        <SectionLabel>How Well Do You Know Us?</SectionLabel>
+        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 8 }}>The Couple Quiz</h2>
+        <p style={{ fontSize: 13, color: "#9A8E88", marginBottom: 40, fontStyle: "italic", fontFamily: "Georgia, serif" }}>Test your knowledge before the big day.</p>
+
+        <div style={{ background: "#fff", borderRadius: 10, padding: "32px 28px", boxShadow: "0 4px 20px rgba(46,37,32,.07)", border: "1px solid #EDE7D9", textAlign: "left" }}>
+          {quizDone ? (
+            <div style={{ textAlign: "center", padding: "12px 0" }}>
+              <FlowerLogo size={44} color={quizScore >= 4 ? "#7A9E8A" : quizScore >= 2 ? "#C4967A" : "#C47A7A"} />
+              <p className="sf" style={{ fontSize: 28, color: "#2E2520", margin: "16px 0 8px" }}>
+                {quizScore >= 4 ? "You really know us!" : quizScore >= 2 ? "Not bad!" : "We'll catch you up at the wedding!"}
+              </p>
+              <p style={{ fontSize: 14, color: "#9A8E88" }}>You got <strong style={{ color: "#2E2520" }}>{quizScore}/{quiz.length}</strong> correct</p>
+              <button onClick={() => { setQuizIdx(0); setQuizAns(null); setQuizScore(0); setQuizDone(false); }}
+                style={{ marginTop: 20, background: "#C4967A", color: "#fff", border: "none", padding: "10px 28px", borderRadius: 4, fontSize: 10, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer", fontFamily: "'Jost', sans-serif" }}>
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase" }}>Question {quizIdx + 1} of {quiz.length}</span>
+                <span style={{ fontSize: 10, color: "#9A8E88" }}>{quizScore} pts</span>
+              </div>
+              <div style={{ height: 3, background: "#EDE7D9", borderRadius: 2, marginBottom: 24 }}>
+                <div style={{ height: "100%", width: `${((quizIdx) / quiz.length) * 100}%`, background: "linear-gradient(to right, #C4967A, #B8976A)", borderRadius: 2, transition: "width .4s" }} />
+              </div>
+              <p className="sf" style={{ fontSize: 20, color: "#2E2520", marginBottom: 24, lineHeight: 1.5 }}>{quiz[quizIdx].q}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {quiz[quizIdx].opts.map((opt, i) => {
+                  let bg = "transparent", border = "#D8CFC4", color = "#2E2520";
+                  if (quizAns !== null) {
+                    if (i === quiz[quizIdx].ans) { bg = "rgba(122,158,138,.15)"; border = "#7A9E8A"; color = "#4A7A5A"; }
+                    else if (i === quizAns && i !== quiz[quizIdx].ans) { bg = "rgba(196,122,122,.10)"; border = "#C47A7A"; color = "#8A4A4A"; }
+                  }
+                  return (
+                    <button key={i} onClick={() => handleQuizAns(i)}
+                      style={{ padding: "12px 16px", textAlign: "left", background: bg, border: `1px solid ${border}`, borderRadius: 6, cursor: quizAns !== null ? "default" : "pointer", color, fontSize: 13, fontFamily: "'Jost', sans-serif", transition: "all .2s" }}>
+                      <span style={{ fontSize: 10, color: quizAns !== null && i === quiz[quizIdx].ans ? "#7A9E8A" : "#C4B8AC", marginRight: 10 }}>{String.fromCharCode(65 + i)}.</span>
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+              {quizAns !== null && (
+                <button onClick={nextQuiz}
+                  style={{ marginTop: 20, width: "100%", background: "#2E2520", color: "#F7F2EA", border: "none", padding: "12px", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", borderRadius: 4, cursor: "pointer", fontFamily: "'Jost', sans-serif" }}>
+                  {quizIdx + 1 >= quiz.length ? "See Results" : "Next Question →"}
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
       {/* ── RSVP ── */}
-      <div style={{ background: "#EDE7D9", padding: "72px 24px" }}>
-        <div style={{ maxWidth: 420, margin: "0 auto", textAlign: "center" }}>
-          <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 12 }}>Kindly Reply</p>
-          <h2 className="sf" style={{ fontSize: 38, fontWeight: 300, color: "#2E2520", marginBottom: 16 }}>Will You Join Us?</h2>
-          <p style={{ fontSize: 13, color: "#9A8E88", fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.8, marginBottom: 36 }}>
+      <div style={{ background: "linear-gradient(135deg, #EDE7D9, #E4DDD2)", padding: "80px 24px" }}>
+        <div style={{ maxWidth: 440, margin: "0 auto", textAlign: "center" }}>
+          <SectionLabel>Kindly Reply</SectionLabel>
+          <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 14 }}>Will You Join Us?</h2>
+          <p style={{ fontSize: 13, color: "#9A8E88", fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.9, marginBottom: 40 }}>
             Please let us know by July 2026 so we can plan accordingly. We'd love to celebrate with you.
           </p>
-
           {rsvpSent ? (
-            <div style={{ border: "1px solid #7A9E8A", borderRadius: 4, padding: "32px 24px", background: "rgba(122,158,138,.08)" }}>
-              <FlowerLogo size={40} color="#7A9E8A" />
-              <p className="sf" style={{ fontSize: 22, color: "#2E2520", marginTop: 16, marginBottom: 8 }}>Thank you, {rsvpName}!</p>
-              <p style={{ fontSize: 13, color: "#7A9E8A" }}>
-                {rsvpAttending ? "We're so excited to celebrate with you! 🎉" : "We'll miss you, but we understand. Thank you for letting us know."}
+            <div style={{ borderRadius: 10, padding: "40px 28px", background: "#fff", border: "1px solid #C4E0D4", boxShadow: "0 4px 20px rgba(46,37,32,.06)", textAlign: "center" }}>
+              <FlowerLogo size={44} color="#7A9E8A" />
+              <p className="sf" style={{ fontSize: 26, color: "#2E2520", margin: "18px 0 8px" }}>Thank you, {rsvpName}!</p>
+              <p style={{ fontSize: 13, color: "#7A9E8A", lineHeight: 1.8 }}>
+                {rsvpAttending ? "We're so excited to celebrate with you!" : "We'll miss you, but we understand. Thank you for letting us know."}
               </p>
             </div>
           ) : (
-            <div style={{ border: "1px solid #D8CFC4", borderRadius: 4, padding: "32px 28px", background: "#FDFAF5", textAlign: "left" }}>
-              {/* Name */}
-              <div style={{ marginBottom: 20 }}>
+            <div style={{ borderRadius: 10, padding: "36px 32px", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", border: "1px solid #EDE7D9", textAlign: "left" }}>
+              <div style={{ marginBottom: 22 }}>
                 <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>Your Name</p>
                 <input value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }}
                   placeholder="Full name"
-                  style={{ width: "100%", border: "none", borderBottom: "1px solid #D8CFC4", borderRadius: 0, background: "transparent", padding: "8px 0", fontSize: 14, color: "#2E2520", outline: "none", fontFamily: "'Jost', sans-serif" }} />
+                  style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E0D8D0", borderRadius: 0, background: "transparent", padding: "8px 0", fontSize: 15, color: "#2E2520", outline: "none", fontFamily: "'Jost', sans-serif" }} />
               </div>
-
-              {/* Attending */}
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 22 }}>
                 <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 12 }}>Will you be attending?</p>
                 <div style={{ display: "flex", gap: 10 }}>
-                  {[{ label: "Joyfully Accepts", val: true }, { label: "Regretfully Declines", val: false }].map(opt => (
+                  {[{ label: "Joyfully Accepts", val: true, ac: "#7A9E8A" }, { label: "Regretfully Declines", val: false, ac: "#C47A7A" }].map(opt => (
                     <button key={String(opt.val)} onClick={() => { setRsvpAttending(opt.val); setRsvpError(""); }}
-                      style={{ flex: 1, padding: "11px 8px", fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", border: "1px solid", borderRadius: 3, cursor: "pointer", transition: "all .2s", fontFamily: "'Jost', sans-serif", fontWeight: 500,
-                        background: rsvpAttending === opt.val ? (opt.val ? "#7A9E8A" : "#C47A7A") : "transparent",
-                        color: rsvpAttending === opt.val ? "#FDFAF5" : "#7A6E68",
-                        borderColor: rsvpAttending === opt.val ? (opt.val ? "#7A9E8A" : "#C47A7A") : "#D8CFC4",
-                      }}>
-                      {opt.label}
-                    </button>
+                      style={{ flex: 1, padding: "12px 8px", fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", border: "1.5px solid", borderRadius: 4, cursor: "pointer", transition: "all .2s", fontFamily: "'Jost', sans-serif", fontWeight: 500,
+                        background: rsvpAttending === opt.val ? opt.ac : "transparent",
+                        color: rsvpAttending === opt.val ? "#fff" : "#7A6E68",
+                        borderColor: rsvpAttending === opt.val ? opt.ac : "#D8CFC4",
+                      }}>{opt.label}</button>
                   ))}
                 </div>
               </div>
-
-              {/* Note */}
-              <div style={{ marginBottom: 24 }}>
-                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>A note for the couple <span style={{ color: "#C4B8B0" }}>(optional)</span></p>
+              <div style={{ marginBottom: 26 }}>
+                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>A note for the couple <span style={{ color: "#C4B8B0", textTransform: "none", letterSpacing: 0 }}>(optional)</span></p>
                 <textarea value={rsvpNote} onChange={e => setRsvpNote(e.target.value)}
                   placeholder="Share a message, well wishes, or dietary notes..."
                   rows={3}
-                  style={{ width: "100%", border: "1px solid #D8CFC4", borderRadius: 3, background: "transparent", padding: "10px 12px", fontSize: 13, color: "#2E2520", outline: "none", resize: "vertical", fontFamily: "Georgia, serif", fontStyle: "italic" }} />
+                  style={{ width: "100%", border: "1.5px solid #E0D8D0", borderRadius: 4, background: "transparent", padding: "10px 14px", fontSize: 13, color: "#2E2520", outline: "none", resize: "vertical", fontFamily: "Georgia, serif", fontStyle: "italic" }} />
               </div>
-
-              {rsvpError && <p style={{ fontSize: 12, color: "#C47A7A", marginBottom: 12 }}>{rsvpError}</p>}
-
+              {rsvpError && <p style={{ fontSize: 12, color: "#C47A7A", marginBottom: 14 }}>{rsvpError}</p>}
               <button onClick={handleRsvp}
-                style={{ width: "100%", background: "#7A6E68", color: "#F5EFE6", border: "none", padding: "14px", fontSize: 9, letterSpacing: 4, textTransform: "uppercase", borderRadius: 3, cursor: "pointer", fontFamily: "'Jost', sans-serif", fontWeight: 500, transition: "background .2s" }}
+                style={{ width: "100%", background: "#2E2520", color: "#F7F2EA", border: "none", padding: "15px", fontSize: 9, letterSpacing: 4, textTransform: "uppercase", borderRadius: 4, cursor: "pointer", fontFamily: "'Jost', sans-serif", fontWeight: 500, transition: "background .2s" }}
                 onMouseEnter={e => e.currentTarget.style.background = "#C4967A"}
-                onMouseLeave={e => e.currentTarget.style.background = "#7A6E68"}>
+                onMouseLeave={e => e.currentTarget.style.background = "#2E2520"}>
                 Send My Reply
               </button>
             </div>
@@ -556,15 +741,35 @@ function Landing({ onEnter }) {
         </div>
       </div>
 
+      {/* ── Event Photos Upload Placeholder ── */}
+      <div style={{ padding: "80px 24px", background: "#2E2520", textAlign: "center" }}>
+        <SectionLabel>Memories</SectionLabel>
+        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#F7F2EA", marginBottom: 12 }}>Share the Moment</h2>
+        <p style={{ fontSize: 13, color: "#7A6E68", lineHeight: 1.9, maxWidth: 420, margin: "0 auto 48px", fontFamily: "Georgia, serif", fontStyle: "italic" }}>
+          On the day of the wedding, this space will open for guests to upload and share their photos with us.
+        </p>
+        <div style={{ maxWidth: 480, margin: "0 auto", border: "2px dashed rgba(196,150,122,.25)", borderRadius: 10, padding: "52px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 36, opacity: 0.3 }}>📸</div>
+          <p style={{ fontSize: 10, letterSpacing: 4, color: "rgba(196,150,122,.5)", textTransform: "uppercase" }}>Photo upload — Opens January 15, 2027</p>
+          <div style={{ height: 1, width: 60, background: "rgba(196,150,122,.2)" }} />
+          <p style={{ fontSize: 12, color: "#5A504A", lineHeight: 1.8 }}>Guests will be able to upload their photos here during and after the event.</p>
+        </div>
+      </div>
+
       {/* ── Footer ── */}
-      <div style={{ padding: "40px 24px", textAlign: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 16 }}>
+      <div style={{ padding: "48px 24px", textAlign: "center", background: "#F7F2EA", borderTop: "1px solid #E8DDD4" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 20 }}>
           <div style={{ height: 1, width: 60, background: "#D8CFC4" }} />
-          <FlowerLogo size={18} color="#C4967A" />
+          <FlowerLogo size={20} color="#C4967A" />
           <div style={{ height: 1, width: 60, background: "#D8CFC4" }} />
         </div>
-        <p className="sf" style={{ fontSize: 20, fontWeight: 300, color: "#2E2520", marginBottom: 6 }}>Chicco &amp; Michelle</p>
+        <p className="sf" style={{ fontSize: 22, fontWeight: 300, color: "#2E2520", marginBottom: 6 }}>Chicco &amp; Michelle</p>
         <p style={{ fontSize: 10, letterSpacing: 3, color: "#B8A898", textTransform: "uppercase" }}>January 15, 2027 · Tagaytay</p>
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 24 }}>
+          {["Ceremony · 3:00 PM", "Reception · 5:00 PM", "Black Tie"].map(t => (
+            <span key={t} style={{ fontSize: 9, letterSpacing: 2, color: "#C4B8AC", textTransform: "uppercase" }}>{t}</span>
+          ))}
+        </div>
       </div>
     </div>
   );
