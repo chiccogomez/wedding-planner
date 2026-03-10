@@ -1151,6 +1151,10 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget, suppliers }
 }
 
 /* ─── Guests tab ──────────────────────────────────────────────────────────── */
+const SPECIAL_ROLES = ["—", "Entourage", "Sponsor", "Best Man", "Maid of Honor", "Principal Sponsor", "Secondary Sponsor", "Flower Girl", "Ring Bearer", "Reader", "Candle", "Veil", "Cord", "Other"];
+const VIP_TABLES = ["VIP 1", "VIP 2"];
+const TABLE_CAPACITY = t => VIP_TABLES.includes(t) ? 14 : 10;
+
 function GuestsTab({ guests, setGuests }) {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({});
@@ -1159,20 +1163,43 @@ function GuestsTab({ guests, setGuests }) {
   const [fR, setFR] = useState("All");
   const [fG, setFG] = useState("All");
   const [fM, setFM] = useState("All");
+  const [sortByTable, setSortByTable] = useState(false);
   const [bulkResult, setBulkResult] = useState(null);
   const [activeBreakdown, setActiveBreakdown] = useState("rsvp");
   const fileRef = useRef();
 
-  const list = guests.filter(g =>
+  const quickRsvp = (id, rsvp) => setGuests(p => p.map(g => g.id === id ? { ...g, rsvp } : g));
+
+  const filtered = guests.filter(g =>
     (fR === "All" || g.rsvp === fR) && (fG === "All" || g.group === fG) &&
     (fM === "All" || g.meal === fM) &&
     (g.name.toLowerCase().includes(q.toLowerCase()) || (g.phone || "").includes(q))
   );
 
+  const list = sortByTable
+    ? [...filtered].sort((a, b) => {
+        const ta = a.table || "ZZZ", tb = b.table || "ZZZ";
+        if (ta !== tb) return ta.localeCompare(tb, undefined, { numeric: true });
+        return a.name.localeCompare(b.name);
+      })
+    : filtered;
+
   const conf = guests.filter(g => g.rsvp === "Confirmed").length;
   const pend = guests.filter(g => g.rsvp === "Pending").length;
   const decl = guests.filter(g => g.rsvp === "Declined").length;
   const heads = guests.filter(g => g.rsvp === "Confirmed").reduce((a, g) => a + 1 + (g.plusOne ? 1 : 0), 0);
+
+  // Table capacity info
+  const tableCounts = useMemo(() => {
+    const m = {};
+    guests.forEach(g => {
+      const t = g.table || "";
+      if (!t) return;
+      if (!m[t]) m[t] = 0;
+      m[t] += 1 + (g.plusOne ? 1 : 0);
+    });
+    return m;
+  }, [guests]);
 
   const save = () => {
     const e = { ...form, id: sel?.id || Date.now() };
@@ -1182,9 +1209,9 @@ function GuestsTab({ guests, setGuests }) {
 
   const downloadTemplate = () => {
     downloadCSV("guests_template.csv",
-      ["name", "phone", "group", "rsvp", "meal", "plusOne", "table", "notes"],
-      [["Juan dela Cruz", "09171234567", "Groom", "Confirmed", "Beef", "FALSE", "1", ""],
-       ["Ana Santos", "09189876543", "Bride", "Pending", "Fish", "TRUE", "2", "Vegetarian option"]]
+      ["name", "phone", "group", "rsvp", "meal", "plusOne", "table", "role", "notes"],
+      [["Juan dela Cruz", "09171234567", "Groom", "Confirmed", "Beef", "FALSE", "1", "Best Man", ""],
+       ["Ana Santos", "09189876543", "Bride", "Pending", "Fish", "TRUE", "VIP 1", "Principal Sponsor", "Vegetarian option"]]
     );
   };
 
@@ -1200,7 +1227,9 @@ function GuestsTab({ guests, setGuests }) {
         rsvp: RSVPS.includes(r.rsvp) ? r.rsvp : "Pending",
         meal: MEALS.includes(r.meal) ? r.meal : "",
         plusOne: (r.plusone || r.plusOne || "").toLowerCase() === "true",
-        table: r.table || "", notes: r.notes || "",
+        table: r.table || "",
+        role: r.role || "",
+        notes: r.notes || "",
       }));
       setGuests(p => [...p, ...added]);
       setBulkResult(`${added.length} guest(s) imported.`);
@@ -1214,8 +1243,60 @@ function GuestsTab({ guests, setGuests }) {
     rsvp: RSVPS.map(r => ({ label: r, count: guests.filter(g => g.rsvp === r).length, color: RC[r] })),
     group: GROUPS.map(g => ({ label: g, count: guests.filter(x => x.group === g).length, color: g === "Bride" ? "var(--r)" : g === "Groom" ? "var(--b)" : "var(--m)" })),
     meal: [...MEALS, ""].map(m => ({ label: m || "Unset", count: guests.filter(g => g.meal === m).length, color: "var(--g)" })).filter(x => x.count > 0),
-    table: [...new Set(guests.map(g => g.table || "Unassigned"))].sort().map(t => ({ label: `Table ${t}`, count: guests.filter(g => (g.table || "Unassigned") === t).length, color: "var(--b)" })),
+    table: [...new Set(guests.map(g => g.table || "Unassigned"))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(t => {
+      const cap = TABLE_CAPACITY(t);
+      const cnt = tableCounts[t] || (t === "Unassigned" ? guests.filter(g => !g.table).length : 0);
+      const over = t !== "Unassigned" && cnt > cap;
+      return { label: t === "Unassigned" ? "Unassigned" : `Table ${t}`, count: cnt, cap: t !== "Unassigned" ? cap : null, over, color: over ? "var(--d)" : "var(--b)" };
+    }),
   };
+
+  // Group list by table when sort is on
+  const tableGroups = useMemo(() => {
+    if (!sortByTable) return null;
+    const groups = {};
+    list.forEach(g => {
+      const t = g.table || "Unassigned";
+      if (!groups[t]) groups[t] = [];
+      groups[t].push(g);
+    });
+    return groups;
+  }, [list, sortByTable]);
+
+  const guestRow = (g, i) => (
+    <tr key={g.id} style={{ borderTop: "1px solid var(--l)", background: i % 2 === 0 ? "var(--wh)" : "var(--cr)" }}>
+      <td style={{ padding: "10px 12px" }}>
+        <div style={{ fontWeight: 500 }}>{g.name}</div>
+        {g.role && g.role !== "—" && <div style={{ fontSize: 10, color: "var(--r)", marginTop: 2, fontWeight: 500, letterSpacing: 0.5 }}>{g.role}</div>}
+      </td>
+      <td style={{ padding: "10px 12px", color: "var(--m)", fontSize: 12 }}>{g.phone || "—"}</td>
+      <td style={{ padding: "10px 12px" }}><Badge label={g.group} color={g.group === "Bride" ? "var(--r)" : g.group === "Groom" ? "var(--b)" : "var(--m)"} /></td>
+      <td style={{ padding: "10px 12px" }}>
+        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          <Badge label={g.rsvp} color={RC[g.rsvp]} />
+          {g.rsvp !== "Confirmed" && <button title="Confirm" onClick={() => quickRsvp(g.id, "Confirmed")} style={{ background: "var(--su)", border: "none", color: "var(--wh)", borderRadius: 4, padding: "2px 6px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>✓</button>}
+          {g.rsvp !== "Declined" && <button title="Decline" onClick={() => quickRsvp(g.id, "Declined")} style={{ background: "var(--d)", border: "none", color: "var(--wh)", borderRadius: 4, padding: "2px 6px", fontSize: 10, cursor: "pointer", fontWeight: 600 }}>✗</button>}
+        </div>
+      </td>
+      <td style={{ padding: "10px 12px", color: "var(--m)", fontSize: 12 }}>{g.meal || "—"}</td>
+      <td style={{ padding: "10px 12px", textAlign: "center" }}>{g.plusOne ? "✓" : "—"}</td>
+      <td style={{ padding: "10px 12px", color: "var(--m)", fontSize: 12 }}>{g.table || "—"}</td>
+      <td style={{ padding: "10px 12px" }}>
+        <div style={{ display: "flex", gap: 5 }}>
+          <Btn onClick={() => { setForm({ ...g }); setSel(g); setModal(true); }} v="secondary">Edit</Btn>
+          <Btn onClick={() => { if (window.confirm("Remove?")) setGuests(p => p.filter(x => x.id !== g.id)); }} v="danger">Del</Btn>
+        </div>
+      </td>
+    </tr>
+  );
+
+  const tableHead = (
+    <tr style={{ background: "var(--l)" }}>
+      {["Name / Role", "Phone", "Group", "RSVP", "Meal", "+1", "Table", ""].map(h => (
+        <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
+      ))}
+    </tr>
+  );
 
   return (
     <div className="fade">
@@ -1231,18 +1312,20 @@ function GuestsTab({ guests, setGuests }) {
       {/* Breakdown panel */}
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-          {[["rsvp", "RSVP"], ["group", "Group"], ["meal", "Meal"], ["table", "Table"]].map(([k, l]) => (
+          {[["rsvp", "RSVP"], ["group", "Group"], ["meal", "Meal"], ["table", "Tables"]].map(([k, l]) => (
             <button key={k} onClick={() => setActiveBreakdown(k)} style={{ padding: "5px 14px", borderRadius: 20, border: "none", fontSize: 11, fontWeight: 500, cursor: "pointer", background: activeBreakdown === k ? "var(--r)" : "var(--l)", color: activeBreakdown === k ? "var(--wh)" : "var(--m)" }}>{l}</button>
           ))}
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {breakdowns[activeBreakdown].map(item => (
-            <div key={item.label} style={{ background: "var(--l)", borderRadius: 8, padding: "10px 16px", textAlign: "center", minWidth: 80 }}>
-              <div style={{ fontSize: 22, fontWeight: 300, color: item.color }}>{item.count}</div>
+            <div key={item.label} style={{ background: item.over ? "rgba(196,122,122,.12)" : "var(--l)", borderRadius: 8, padding: "10px 14px", textAlign: "center", minWidth: 80, border: item.over ? "1px solid var(--d)" : "1px solid transparent" }}>
+              <div style={{ fontSize: 20, fontWeight: 300, color: item.color }}>{item.count}{item.cap ? <span style={{ fontSize: 11, color: "var(--m)" }}>/{item.cap}</span> : ""}</div>
               <div style={{ fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{item.label}</div>
+              {item.over && <div style={{ fontSize: 9, color: "var(--d)", marginTop: 2, fontWeight: 600 }}>OVER LIMIT</div>}
             </div>
           ))}
         </div>
+        {activeBreakdown === "table" && <p style={{ fontSize: 11, color: "var(--m)", marginTop: 10 }}>VIP 1 &amp; VIP 2: max 14 seats · All other tables: max 10 seats</p>}
       </Card>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
@@ -1256,7 +1339,10 @@ function GuestsTab({ guests, setGuests }) {
         <select value={fM} onChange={e => setFM(e.target.value)} style={{ minWidth: 100 }}>
           <option value="All">All Meals</option>{MEALS.map(m => <option key={m}>{m}</option>)}
         </select>
-        <Btn onClick={() => { setForm({ name: "", phone: "", group: "Mutual", rsvp: "Pending", meal: "", plusOne: false, table: "", notes: "" }); setSel(null); setModal(true); }}>+ Add</Btn>
+        <button onClick={() => setSortByTable(p => !p)} style={{ padding: "7px 12px", borderRadius: 6, border: "1px solid #D8D0C4", fontSize: 11, cursor: "pointer", background: sortByTable ? "var(--ink)" : "var(--wh)", color: sortByTable ? "var(--wh)" : "var(--m)", fontFamily: "'Jost',sans-serif", fontWeight: 500 }}>
+          {sortByTable ? "⊞ By Table" : "⊟ By Table"}
+        </button>
+        <Btn onClick={() => { setForm({ name: "", phone: "", group: "Mutual", rsvp: "Pending", meal: "", plusOne: false, table: "", role: "", notes: "" }); setSel(null); setModal(true); }}>+ Add</Btn>
         <Btn v="ghost" onClick={downloadTemplate}>↓ Template</Btn>
         <Btn v="secondary" onClick={() => fileRef.current.click()}>↑ Bulk</Btn>
         <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={handleBulkFile} />
@@ -1264,35 +1350,40 @@ function GuestsTab({ guests, setGuests }) {
       {bulkResult && <div style={{ fontSize: 12, color: "var(--su)", marginBottom: 10, padding: "8px 12px", background: "rgba(122,158,138,.1)", borderRadius: 6 }}>{bulkResult} <button onClick={() => setBulkResult(null)} style={{ background: "none", border: "none", color: "var(--m)", cursor: "pointer", marginLeft: 8 }}>×</button></div>}
 
       <Card style={{ padding: 0, overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 620 }}>
-          <thead>
-            <tr style={{ background: "var(--l)" }}>
-              {["Name", "Phone", "Group", "RSVP", "Meal", "+1", "Table", ""].map(h => (
-                <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((g, i) => (
-              <tr key={g.id} style={{ borderTop: "1px solid var(--l)", background: i % 2 === 0 ? "var(--wh)" : "var(--cr)" }}>
-                <td style={{ padding: "10px 12px", fontWeight: 500 }}>{g.name}</td>
-                <td style={{ padding: "10px 12px", color: "var(--m)", fontSize: 12 }}>{g.phone || "—"}</td>
-                <td style={{ padding: "10px 12px" }}><Badge label={g.group} color={g.group === "Bride" ? "var(--r)" : g.group === "Groom" ? "var(--b)" : "var(--m)"} /></td>
-                <td style={{ padding: "10px 12px" }}><Badge label={g.rsvp} color={RC[g.rsvp]} /></td>
-                <td style={{ padding: "10px 12px", color: "var(--m)", fontSize: 12 }}>{g.meal || "—"}</td>
-                <td style={{ padding: "10px 12px", textAlign: "center" }}>{g.plusOne ? "✓" : "—"}</td>
-                <td style={{ padding: "10px 12px", color: "var(--m)", fontSize: 12 }}>{g.table || "—"}</td>
-                <td style={{ padding: "10px 12px" }}>
-                  <div style={{ display: "flex", gap: 5 }}>
-                    <Btn onClick={() => { setForm({ ...g }); setSel(g); setModal(true); }} v="secondary">Edit</Btn>
-                    <Btn onClick={() => { if (window.confirm("Remove?")) setGuests(p => p.filter(x => x.id !== g.id)); }} v="danger">Del</Btn>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {list.length === 0 && <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "var(--m)" }}>No guests found.</td></tr>}
-          </tbody>
-        </table>
+        {sortByTable && tableGroups ? (
+          Object.entries(tableGroups).map(([tbl, tGuests]) => {
+            const cap = TABLE_CAPACITY(tbl);
+            const cnt = tGuests.reduce((a, g) => a + 1 + (g.plusOne ? 1 : 0), 0);
+            const over = tbl !== "Unassigned" && cnt > cap;
+            return (
+              <div key={tbl}>
+                <div style={{ padding: "8px 14px", background: over ? "rgba(196,122,122,.15)" : "rgba(122,158,173,.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 600, fontSize: 13, color: over ? "var(--d)" : "var(--b)" }}>
+                    {tbl === "Unassigned" ? "No Table Assigned" : `Table ${tbl}`}
+                    {tbl !== "Unassigned" && <span style={{ fontWeight: 400, color: "var(--m)", fontSize: 11, marginLeft: 8 }}>{VIP_TABLES.includes(tbl) ? "VIP" : "Regular"}</span>}
+                  </span>
+                  <span style={{ fontSize: 12, color: over ? "var(--d)" : "var(--m)", fontWeight: over ? 600 : 400 }}>
+                    {cnt} / {tbl === "Unassigned" ? "—" : cap} seats{over ? " — OVER LIMIT" : ""}
+                  </span>
+                </div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 700 }}>
+                  <thead>{tableHead}</thead>
+                  <tbody>
+                    {tGuests.map((g, i) => guestRow(g, i))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 700 }}>
+            <thead>{tableHead}</thead>
+            <tbody>
+              {list.map((g, i) => guestRow(g, i))}
+              {list.length === 0 && <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "var(--m)" }}>No guests found.</td></tr>}
+            </tbody>
+          </table>
+        )}
       </Card>
 
       {modal && (
@@ -1315,7 +1406,12 @@ function GuestsTab({ guests, setGuests }) {
                 <option value="">—</option>{MEALS.map(m => <option key={m}>{m}</option>)}
               </select>
             </Field>
-            <Field label="Table No."><input value={form.table || ""} onChange={e => setForm(f => ({ ...f, table: e.target.value }))} placeholder="e.g. 3" /></Field>
+            <Field label="Table No."><input value={form.table || ""} onChange={e => setForm(f => ({ ...f, table: e.target.value }))} placeholder="e.g. 3 or VIP 1" /></Field>
+            <Field label="Special Role" style={{ gridColumn: "1/-1" }}>
+              <select value={form.role || "—"} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+                {SPECIAL_ROLES.map(r => <option key={r}>{r}</option>)}
+              </select>
+            </Field>
           </div>
           <Field label="+1?">
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
