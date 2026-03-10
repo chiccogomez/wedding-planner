@@ -288,12 +288,22 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
 
   return (
     <>
-      <Field label="Supplier Name" required><input value={form.name || ""} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></Field>
+      <Field label="Supplier / Company Name" required><input value={form.name || ""} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></Field>
       <Field label="Category" required>
         <select value={cat} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
           {scats.map(c => <option key={c}>{c}</option>)}
         </select>
       </Field>
+
+      {/* Contact details */}
+      <div style={{ background: "rgba(122,158,173,.08)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 10, letterSpacing: 1.5, color: "var(--b)", textTransform: "uppercase", marginBottom: 10, fontWeight: 500 }}>Contact Person</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Contact Name"><input value={form.contactName || ""} onChange={e => setForm(p => ({ ...p, contactName: e.target.value }))} placeholder="e.g. Maria Santos" /></Field>
+          <Field label="Mobile / CP"><input value={form.contactPhone || ""} onChange={e => setForm(p => ({ ...p, contactPhone: e.target.value }))} placeholder="09XX XXX XXXX" /></Field>
+          <Field label="Email" style={{ gridColumn: "1/-1" }}><input type="email" value={form.contactEmail || ""} onChange={e => setForm(p => ({ ...p, contactEmail: e.target.value }))} placeholder="supplier@email.com" /></Field>
+        </div>
+      </div>
 
       {budgeted > 0 && (
         <div className="budget-hint">
@@ -401,6 +411,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
   const [cat, setCat] = useState("All");
   const [bulkResult, setBulkResult] = useState(null);
   const [showPayCats, setShowPayCats] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef();
   const attachRef = useRef();
   const PAYMENT_MODES = ["Cash", "Bank Transfer", "GCash", "Maya", "Check", "Other"];
@@ -442,7 +453,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
     return cats;
   }, [suppliers]);
 
-  const blankForm = () => ({ name: "", category: budget[0]?.category || "Other", baseAmount: "", hasDP: false, dpAmount: "", dpDueDate: "", dpPaidDate: "", hasCrew: false, crewMeals: "", hasOOT: false, ootFee: "", dueDate: "", notes: "", payments: [], attachments: [] });
+  const blankForm = () => ({ name: "", category: budget[0]?.category || "Other", baseAmount: "", hasDP: false, dpAmount: "", dpDueDate: "", dpPaidDate: "", hasCrew: false, crewMeals: "", hasOOT: false, ootFee: "", dueDate: "", notes: "", payments: [], attachments: [], contactName: "", contactPhone: "", contactEmail: "" });
 
   const save = () => {
     if (!form.name || !form.baseAmount) return alert("Name and Base Amount are required");
@@ -494,6 +505,16 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
   };
 
   const del = id => { if (window.confirm("Delete supplier?")) setSuppliers(p => p.filter(s => s.id !== id)); };
+
+  const addAttachment = (supplierId, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const att = { id: Date.now() + Math.random(), name: file.name, type: "Contract", dataUrl: ev.target.result, mimeType: file.type, size: file.size };
+      setSuppliers(prev => prev.map(s => s.id !== supplierId ? s : { ...s, attachments: [...(s.attachments || []), att] }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const downloadTemplate = () => {
     downloadCSV("suppliers_template.csv",
@@ -705,6 +726,16 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
             </div>
           </div>
 
+          {/* Contact details */}
+          {(liveSel.contactName || liveSel.contactPhone || liveSel.contactEmail) && (
+            <div style={{ background: "rgba(122,158,173,.08)", borderRadius: 8, padding: 12, marginBottom: 14, display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ fontSize: 10, color: "var(--b)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 500, flexShrink: 0 }}>Contact</div>
+              {liveSel.contactName && <span style={{ fontSize: 13, fontWeight: 500 }}>{liveSel.contactName}</span>}
+              {liveSel.contactPhone && <a href={`tel:${liveSel.contactPhone}`} style={{ fontSize: 13, color: "var(--b)", textDecoration: "none" }}>📞 {liveSel.contactPhone}</a>}
+              {liveSel.contactEmail && <a href={`mailto:${liveSel.contactEmail}`} style={{ fontSize: 13, color: "var(--r)", textDecoration: "none" }}>✉ {liveSel.contactEmail}</a>}
+            </div>
+          )}
+
           {/* Details grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 14 }}>
             {[["Category", liveSel.category], ["Final Due Date", liveSel.dueDate || "—"], ["Status", liveSel.status],
@@ -752,26 +783,45 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
           {/* Attachments section */}
           <div style={{ marginTop: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <h4 style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)" }}>Attachments</h4>
+              <h4 style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)" }}>
+                Attachments {liveSel.attachments?.length ? `(${liveSel.attachments.length})` : ""}
+              </h4>
               <Btn v="ghost" onClick={() => attachRef.current.click()}>+ Attach File</Btn>
-              <input ref={attachRef} type="file" accept="image/*,.pdf" style={{ display: "none" }} onChange={e => {
-                const file = e.target.files[0]; if (!file) return;
-                const reader = new FileReader();
-                reader.onload = ev => {
-                  const att = { id: Date.now(), name: file.name, type: "Contract", dataUrl: ev.target.result, mimeType: file.type, size: file.size };
-                  setSuppliers(prev => prev.map(s => s.id !== liveSel.id ? s : { ...s, attachments: [...(s.attachments || []), att] }));
-                };
-                reader.readAsDataURL(file);
+              <input ref={attachRef} type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={e => {
+                Array.from(e.target.files).forEach(f => addAttachment(liveSel.id, f));
                 e.target.value = "";
               }} />
             </div>
+
+            {/* Drag-and-drop zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => {
+                e.preventDefault(); setDragOver(false);
+                Array.from(e.dataTransfer.files).forEach(f => addAttachment(liveSel.id, f));
+              }}
+              onClick={() => attachRef.current.click()}
+              style={{
+                border: `2px dashed ${dragOver ? "var(--r)" : "#D8D0C4"}`,
+                borderRadius: 10, padding: "18px 12px", textAlign: "center",
+                marginBottom: 12, cursor: "pointer", transition: "border-color .15s",
+                background: dragOver ? "rgba(196,150,122,.06)" : "transparent",
+              }}>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>📎</div>
+              <div style={{ fontSize: 12, color: "var(--m)" }}>
+                {dragOver ? "Drop to attach" : "Drag & drop files here, or click to browse"}
+              </div>
+              <div style={{ fontSize: 10, color: "#C9B9A8", marginTop: 4 }}>Images & PDFs supported · multiple files OK</div>
+            </div>
+
             {!(liveSel.attachments?.length)
-              ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 10 }}>No attachments yet.</p>
+              ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 6 }}>No attachments yet.</p>
               : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {liveSel.attachments.map((att, i) => (
                     <div key={att.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--l)", borderRadius: 8, padding: "8px 12px" }}>
                       {att.mimeType?.startsWith("image/")
-                        ? <img src={att.dataUrl} alt={att.name} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                        ? <img src={att.dataUrl} alt={att.name} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 4, flexShrink: 0, cursor: "pointer" }} onClick={() => window.open(att.dataUrl)} />
                         : <div style={{ width: 44, height: 44, background: "var(--r)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--wh)", fontWeight: 600, flexShrink: 0 }}>PDF</div>}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{att.name}</div>
@@ -781,7 +831,8 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
                           {ATTACH_TYPES.map(t => <option key={t}>{t}</option>)}
                         </select>
                       </div>
-                      <a href={att.dataUrl} download={att.name} style={{ fontSize: 11, color: "var(--b)", textDecoration: "none", fontWeight: 500 }}>↓ Download</a>
+                      <Badge label={att.type} color="var(--g)" />
+                      <a href={att.dataUrl} download={att.name} style={{ fontSize: 11, color: "var(--b)", textDecoration: "none", fontWeight: 500 }}>↓</a>
                       <button onClick={() => {
                         if (window.confirm("Remove attachment?"))
                           setSuppliers(prev => prev.map(s => s.id !== liveSel.id ? s : { ...s, attachments: s.attachments.filter((_, j) => j !== i) }));
