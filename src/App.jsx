@@ -421,23 +421,6 @@ function Landing({ onEnter }) {
     <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 12, fontWeight: 500 }}>{children}</p>
   );
 
-  const MapCard = ({ name, address, embedSrc, color }) => (
-    <div style={{ flex: "1 1 280px", borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(46,37,32,.08)", border: "1px solid #E8DDD4" }}>
-      <div style={{ background: color, padding: "14px 20px" }}>
-        <p style={{ fontSize: 9, letterSpacing: 4, color: "rgba(255,255,255,.75)", textTransform: "uppercase", marginBottom: 4 }}>{name}</p>
-        <p style={{ fontSize: 13, color: "#fff", fontWeight: 500 }}>{address}</p>
-      </div>
-      <iframe
-        title={name}
-        src={embedSrc}
-        width="100%" height="160"
-        style={{ border: 0, display: "block" }}
-        allowFullScreen="" loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
-    </div>
-  );
-
   return (
     <div style={{ minHeight: "100vh", background: "#F7F2EA", fontFamily: "'Jost', sans-serif", color: "#2E2520" }}>
 
@@ -494,7 +477,10 @@ function Landing({ onEnter }) {
               <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Wedding Ceremony</span>
             </div>
             <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Our Lady of Lourdes Parish</p>
-            <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
+              <a href="https://maps.google.com/?q=Our+Lady+of+Lourdes+Parish+Tagaytay" target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, letterSpacing: 2, color: "#C4967A", textTransform: "uppercase", textDecoration: "none", borderBottom: "1px solid rgba(196,150,122,.3)" }}>Get Directions ↗</a>
+            </div>
           </div>
         </div>
 
@@ -508,7 +494,10 @@ function Landing({ onEnter }) {
               <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Cocktails &amp; Dinner</span>
             </div>
             <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Antonio's Restaurant</p>
-            <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
+              <a href="https://maps.google.com/?q=Antonio%27s+Restaurant+Tagaytay" target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, letterSpacing: 2, color: "#7A9EAD", textTransform: "uppercase", textDecoration: "none", borderBottom: "1px solid rgba(122,158,173,.3)" }}>Get Directions ↗</a>
+            </div>
           </div>
         </div>
 
@@ -518,30 +507,6 @@ function Landing({ onEnter }) {
           <span style={{ fontSize: 9, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>Dress Code</span>
           <div style={{ width: 1, height: 14, background: "#C4967A55" }} />
           <span className="sf" style={{ fontSize: 17, color: "#2E2520", fontStyle: "italic" }}>Barong Tagalog / Formal Gown</span>
-        </div>
-      </div>
-
-      {/* ── Maps ── */}
-      <div style={{ background: "#EDE7D9", padding: "80px 24px" }}>
-        <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <SectionLabel>Getting There</SectionLabel>
-            <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520" }}>Find Your Way</h2>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-            <MapCard
-              name="Wedding Ceremony"
-              address="Our Lady of Lourdes Parish, Tagaytay"
-              color="#C4967A"
-              embedSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3868.7!2d120.9623!3d14.1112!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b1b7d2f0001%3A0x1234567890abcdef!2sOur+Lady+of+Lourdes+Parish+Tagaytay!5e0!3m2!1sen!2sph!4v1699000000000!5m2!1sen!2sph"
-            />
-            <MapCard
-              name="Cocktails & Reception"
-              address="Antonio's Restaurant, Tagaytay"
-              color="#7A9EAD"
-              embedSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3868.5!2d120.9602!3d14.1145!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b2c3a4f5678%3A0xabcdef1234567890!2sAntonio%27s+Restaurant+Tagaytay!5e0!3m2!1sen!2sph!4v1699000000001!5m2!1sen!2sph"
-            />
-          </div>
         </div>
       </div>
 
