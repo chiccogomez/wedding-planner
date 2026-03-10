@@ -1008,18 +1008,29 @@ function CalendarTab({ events, setEvents }) {
 }
 
 /* ─── Budget tab ──────────────────────────────────────────────────────────── */
-function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget }) {
+function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget, suppliers }) {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({});
   const [sel, setSel] = useState(null);
   const [editingTotal, setEditingTotal] = useState(false);
   const [totalInput, setTotalInput] = useState(totalBudget || "");
 
+  // Compute actual spent per category live from supplier payments
+  const spentByCategory = useMemo(() => {
+    const map = {};
+    (suppliers || []).forEach(s => {
+      const cat = s.category || "Other";
+      if (!map[cat]) map[cat] = 0;
+      map[cat] += s.paid || 0;
+    });
+    return map;
+  }, [suppliers]);
+
   const tE = budget.reduce((a, b) => a + (b.estimated || 0), 0);
-  const tA = budget.reduce((a, b) => a + (b.actual || 0), 0);
+  const tA = budget.reduce((a, b) => a + (spentByCategory[b.category] || 0), 0);
 
   const save = () => {
-    const e = { ...form, id: sel?.id || Date.now(), estimated: num(form.estimated), actual: num(form.actual) };
+    const e = { ...form, id: sel?.id || Date.now(), estimated: num(form.estimated) };
     setBudget(p => sel ? p.map(b => b.id === e.id ? e : b) : [...p, e]);
     setModal(false);
   };
@@ -1096,13 +1107,14 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget }) {
           </thead>
           <tbody>
             {budget.map((b, i) => {
-              const v = b.estimated - b.actual;
-              const pct = b.estimated > 0 ? Math.min(100, (b.actual / b.estimated) * 100) : 0;
+              const spent = spentByCategory[b.category] || 0;
+              const v = b.estimated - spent;
+              const pct = b.estimated > 0 ? Math.min(100, (spent / b.estimated) * 100) : 0;
               return (
                 <tr key={b.id} style={{ borderTop: "1px solid var(--l)", background: i % 2 === 0 ? "var(--wh)" : "var(--cr)" }}>
                   <td style={{ padding: "11px 12px", fontWeight: 500 }}>{b.category}</td>
                   <td style={{ padding: "11px 12px" }}>{php(b.estimated)}</td>
-                  <td style={{ padding: "11px 12px", color: "var(--r)" }}>{php(b.actual)}</td>
+                  <td style={{ padding: "11px 12px", color: "var(--r)" }}>{php(spent)}</td>
                   <td style={{ padding: "11px 12px", color: v >= 0 ? "var(--su)" : "var(--d)", fontWeight: 500 }}>{v >= 0 ? "+" : ""}{php(v)}</td>
                   <td style={{ padding: "11px 12px", minWidth: 90 }}>
                     <div style={{ height: 5, background: "var(--l)", borderRadius: 3, overflow: "hidden" }}>
@@ -1125,11 +1137,9 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget }) {
 
       {modal && (
         <Modal title={sel ? "Edit Category" : "Add Category"} onClose={() => setModal(false)}>
-          <Field label="Category"><input value={form.category || ""} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} /></Field>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Allocated (₱)"><input type="number" value={form.estimated || ""} onChange={e => setForm(f => ({ ...f, estimated: e.target.value }))} /></Field>
-            <Field label="Actual Spent (₱)"><input type="number" value={form.actual || ""} onChange={e => setForm(f => ({ ...f, actual: e.target.value }))} /></Field>
-          </div>
+          <Field label="Category Name"><input value={form.category || ""} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} /></Field>
+          <Field label="Allocated Budget (₱)"><input type="number" value={form.estimated || ""} onChange={e => setForm(f => ({ ...f, estimated: e.target.value }))} /></Field>
+          <p style={{ fontSize: 11, color: "var(--m)", marginTop: -8, marginBottom: 14 }}>Spent amount is computed automatically from supplier payments.</p>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <Btn v="ghost" onClick={() => setModal(false)}>Cancel</Btn>
             <Btn onClick={save}>Save</Btn>
@@ -1330,7 +1340,8 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
   const tP = suppliers.reduce((a, s) => a + (s.paid || 0), 0);
   const conf = guests.filter(g => g.rsvp === "Confirmed").length;
   const tB = totalBudget || budget.reduce((a, b) => a + b.estimated, 0);
-  const tS = budget.reduce((a, b) => a + b.actual, 0);
+  // Spent = total paid to all suppliers (same source of truth as Budget tab)
+  const tS = suppliers.reduce((a, s) => a + (s.paid || 0), 0);
   const ts = todayISO();
   const up = [...events].filter(e => e.date >= ts).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
   const dl = Math.ceil((WEDDING - new Date()) / 86400000);
@@ -1473,7 +1484,7 @@ function Dashboard({ onLogout }) {
           {tab === "overview"  && <OverviewTab  suppliers={suppliers} guests={guests} budget={budget} events={events} totalBudget={totalBudget} />}
           {tab === "suppliers" && <SuppliersTab suppliers={suppliers} setSuppliers={setSuppliers} budget={budget} />}
           {tab === "calendar"  && <CalendarTab  events={events} setEvents={setEvents} />}
-          {tab === "budget"    && <BudgetTab    budget={budget} setBudget={setBudget} totalBudget={totalBudget} setTotalBudget={setTotalBudget} />}
+          {tab === "budget"    && <BudgetTab    budget={budget} setBudget={setBudget} totalBudget={totalBudget} setTotalBudget={setTotalBudget} suppliers={suppliers} />}
           {tab === "guests"    && <GuestsTab    guests={guests} setGuests={setGuests} />}
         </div>
       </div>
