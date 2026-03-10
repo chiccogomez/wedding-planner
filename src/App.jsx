@@ -393,15 +393,40 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
-  const [pf, setPf] = useState({ date: todayISO(), amount: "", note: "" });
-  const [editPayIdx, setEditPayIdx] = useState(null); // index of payment being edited
+  const [pf, setPf] = useState({ date: todayISO(), amount: "", note: "", mode: "Bank Transfer" });
+  const [editPayIdx, setEditPayIdx] = useState(null);
+  const [sortCol, setSortCol] = useState("name");
+  const [sortDir, setSortDir] = useState("asc");
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
   const [bulkResult, setBulkResult] = useState(null);
   const [showPayCats, setShowPayCats] = useState(false);
   const fileRef = useRef();
+  const attachRef = useRef();
+  const PAYMENT_MODES = ["Cash", "Bank Transfer", "GCash", "Maya", "Check", "Other"];
+  const ATTACH_TYPES = ["Contract", "Draft", "Receipt", "QR"];
 
-  const list = suppliers.filter(s => (cat === "All" || s.category === cat) && s.name.toLowerCase().includes(q.toLowerCase()));
+  const toggleSort = (col) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+  const sortVal = (s, col) => {
+    if (col === "name") return s.name.toLowerCase();
+    if (col === "category") return s.category.toLowerCase();
+    if (col === "total") return s.total || 0;
+    if (col === "dp") return s.hasDP ? (s.dpAmount || 0) : -1;
+    if (col === "paid") return s.paid || 0;
+    if (col === "balance") return (s.total || 0) - (s.paid || 0);
+    if (col === "dueDate") return s.dueDate || "";
+    if (col === "status") return s.status || "";
+    return "";
+  };
+  const filtered = suppliers.filter(s => (cat === "All" || s.category === cat) && s.name.toLowerCase().includes(q.toLowerCase()));
+  const list = [...filtered].sort((a, b) => {
+    const av = sortVal(a, sortCol), bv = sortVal(b, sortCol);
+    const cmp = typeof av === "number" ? av - bv : av.localeCompare(bv);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
   const tot = suppliers.reduce((a, s) => a + (s.total || 0), 0);
   const paid = suppliers.reduce((a, s) => a + (s.paid || 0), 0);
 
@@ -417,7 +442,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
     return cats;
   }, [suppliers]);
 
-  const blankForm = () => ({ name: "", category: "Venue", baseAmount: "", hasDP: false, dpAmount: "", dpDueDate: "", dpPaidDate: "", hasCrew: false, crewMeals: "", hasOOT: false, ootFee: "", dueDate: "", notes: "", payments: [] });
+  const blankForm = () => ({ name: "", category: budget[0]?.category || "Other", baseAmount: "", hasDP: false, dpAmount: "", dpDueDate: "", dpPaidDate: "", hasCrew: false, crewMeals: "", hasOOT: false, ootFee: "", dueDate: "", notes: "", payments: [], attachments: [] });
 
   const save = () => {
     if (!form.name || !form.baseAmount) return alert("Name and Base Amount are required");
@@ -443,7 +468,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
 
   const logPay = () => {
     if (!pf.amount) return;
-    const p = { date: pf.date, amount: num(pf.amount), note: pf.note };
+    const p = { date: pf.date, amount: num(pf.amount), note: pf.note, mode: pf.mode };
     setSuppliers(prev => prev.map(s => {
       if (s.id !== sel.id) return s;
       let ps;
@@ -454,9 +479,8 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
       }
       return recomputeSupplier(s, ps);
     }));
-    // Keep view modal open after saving; go back to it
     setEditPayIdx(null);
-    setPf({ date: todayISO(), amount: "", note: "" });
+    setPf({ date: todayISO(), amount: "", note: "", mode: "Bank Transfer" });
     setModal("view");
   };
 
@@ -583,8 +607,11 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 780 }}>
           <thead>
             <tr style={{ background: "var(--l)" }}>
-              {["Supplier", "Category", "Contract", "DP", "Paid", "Balance", "Due Date", "Status", ""].map(h => (
-                <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500, whiteSpace: "nowrap" }}>{h}</th>
+              {[["Supplier","name"],["Category","category"],["Contract","total"],["DP","dp"],["Paid","paid"],["Balance","balance"],["Due Date","dueDate"],["Status","status"],["",""]].map(([label, col]) => (
+                <th key={label} onClick={col ? () => toggleSort(col) : undefined}
+                  style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500, whiteSpace: "nowrap", cursor: col ? "pointer" : "default", userSelect: "none" }}>
+                  {label}{col && sortCol === col ? (sortDir === "asc" ? " ▲" : " ▼") : col ? " ·" : ""}
+                </th>
               ))}
             </tr>
           </thead>
@@ -600,9 +627,9 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
                 <td style={{ padding: "11px 12px", color: "var(--m)", fontSize: 12 }}>{s.dueDate || "—"}</td>
                 <td style={{ padding: "11px 12px" }}><Badge label={s.status} color={SC[s.status]} /></td>
                 <td style={{ padding: "11px 12px" }}>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    <Btn onClick={() => { setSel(s); setModal("view"); }} v="ghost">View</Btn>
-                    <Btn onClick={() => { setSel(s); setEditPayIdx(null); setPf({ date: todayISO(), amount: "", note: "" }); setModal("pay"); }} v="success">+Pay</Btn>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+                    <Btn onClick={() => { setSel(s); setModal("view"); }} v="ghost">View{(s.attachments?.length) ? ` (${s.attachments.length})` : ""}</Btn>
+                    <Btn onClick={() => { setSel(s); setEditPayIdx(null); setPf({ date: todayISO(), amount: "", note: "", mode: "Bank Transfer" }); setModal("pay"); }} v="success">+Pay</Btn>
                     <Btn onClick={() => { setForm({ ...s }); setSel(s); setModal("form"); }} v="secondary">Edit</Btn>
                     <Btn onClick={() => del(s.id)} v="danger">Del</Btn>
                   </div>
@@ -629,9 +656,16 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
               </div>
             ))}
           </div>
-          <Field label="Date"><input type="date" value={pf.date} onChange={e => setPf(f => ({ ...f, date: e.target.value }))} /></Field>
-          <Field label="Amount (₱)"><input type="number" value={pf.amount} onChange={e => setPf(f => ({ ...f, amount: e.target.value }))} placeholder="0" /></Field>
-          <Field label="Note"><input value={pf.note} onChange={e => setPf(f => ({ ...f, note: e.target.value }))} placeholder="e.g. 2nd tranche" /></Field>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Field label="Date"><input type="date" value={pf.date} onChange={e => setPf(f => ({ ...f, date: e.target.value }))} /></Field>
+            <Field label="Amount (₱)"><input type="number" value={pf.amount} onChange={e => setPf(f => ({ ...f, amount: e.target.value }))} placeholder="0" /></Field>
+            <Field label="Mode of Payment">
+              <select value={pf.mode || "Bank Transfer"} onChange={e => setPf(f => ({ ...f, mode: e.target.value }))}>
+                {PAYMENT_MODES.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </Field>
+            <Field label="Note"><input value={pf.note} onChange={e => setPf(f => ({ ...f, note: e.target.value }))} placeholder="e.g. 2nd tranche" /></Field>
+          </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <Btn v="ghost" onClick={() => { setModal("view"); setEditPayIdx(null); }}>Cancel</Btn>
             <Btn v="success" onClick={logPay}>{editPayIdx !== null ? "Save Changes" : "Log Payment"}</Btn>
@@ -694,7 +728,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
             : <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "var(--l)" }}>
-                    {["Date", "Amount", "Note", ""].map(h => <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>)}
+                    {["Date", "Amount", "Mode", "Note", ""].map(h => <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -702,10 +736,11 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
                     <tr key={i} style={{ borderTop: "1px solid var(--l)" }}>
                       <td style={{ padding: "8px 10px" }}>{p.date}</td>
                       <td style={{ padding: "8px 10px", color: "var(--su)", fontWeight: 600 }}>{php(p.amount)}</td>
+                      <td style={{ padding: "8px 10px" }}>{p.mode ? <Badge label={p.mode} color="var(--b)" /> : "—"}</td>
                       <td style={{ padding: "8px 10px", color: "var(--m)" }}>{p.note || "—"}</td>
                       <td style={{ padding: "8px 10px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          <Btn v="secondary" onClick={() => { setEditPayIdx(i); setPf({ date: p.date, amount: p.amount, note: p.note || "" }); setModal("pay"); }}>Edit</Btn>
+                          <Btn v="secondary" onClick={() => { setEditPayIdx(i); setPf({ date: p.date, amount: p.amount, note: p.note || "", mode: p.mode || "Bank Transfer" }); setModal("pay"); }}>Edit</Btn>
                           <Btn v="danger" onClick={() => delPayment(i)}>Del</Btn>
                         </div>
                       </td>
@@ -713,6 +748,48 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
                   ))}
                 </tbody>
               </table>}
+
+          {/* Attachments section */}
+          <div style={{ marginTop: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <h4 style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)" }}>Attachments</h4>
+              <Btn v="ghost" onClick={() => attachRef.current.click()}>+ Attach File</Btn>
+              <input ref={attachRef} type="file" accept="image/*,.pdf" style={{ display: "none" }} onChange={e => {
+                const file = e.target.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => {
+                  const att = { id: Date.now(), name: file.name, type: "Contract", dataUrl: ev.target.result, mimeType: file.type, size: file.size };
+                  setSuppliers(prev => prev.map(s => s.id !== liveSel.id ? s : { ...s, attachments: [...(s.attachments || []), att] }));
+                };
+                reader.readAsDataURL(file);
+                e.target.value = "";
+              }} />
+            </div>
+            {!(liveSel.attachments?.length)
+              ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 10 }}>No attachments yet.</p>
+              : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {liveSel.attachments.map((att, i) => (
+                    <div key={att.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--l)", borderRadius: 8, padding: "8px 12px" }}>
+                      {att.mimeType?.startsWith("image/")
+                        ? <img src={att.dataUrl} alt={att.name} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                        : <div style={{ width: 44, height: 44, background: "var(--r)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--wh)", fontWeight: 600, flexShrink: 0 }}>PDF</div>}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{att.name}</div>
+                        <select value={att.type} onChange={e => {
+                          setSuppliers(prev => prev.map(s => s.id !== liveSel.id ? s : { ...s, attachments: s.attachments.map((a, j) => j === i ? { ...a, type: e.target.value } : a) }));
+                        }} style={{ fontSize: 11, padding: "2px 6px", marginTop: 3, width: "auto" }}>
+                          {ATTACH_TYPES.map(t => <option key={t}>{t}</option>)}
+                        </select>
+                      </div>
+                      <a href={att.dataUrl} download={att.name} style={{ fontSize: 11, color: "var(--b)", textDecoration: "none", fontWeight: 500 }}>↓ Download</a>
+                      <button onClick={() => {
+                        if (window.confirm("Remove attachment?"))
+                          setSuppliers(prev => prev.map(s => s.id !== liveSel.id ? s : { ...s, attachments: s.attachments.filter((_, j) => j !== i) }));
+                      }} style={{ background: "none", border: "none", color: "var(--d)", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>×</button>
+                    </div>
+                  ))}
+                </div>}
+          </div>
         </Modal>
         );
       })()}
