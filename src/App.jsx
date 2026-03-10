@@ -37,7 +37,7 @@ const todayISO = () => new Date().toISOString().split("T")[0];
 const toISO = (y, m, d) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 const num = v => Number(v) || 0;
 
-const SCATS = ["Venue","Catering","Photography","Videography","Florist","Hair & Makeup","Music/Band","Coordination","Attire","Invitations","Transportation","Cake","Other"];
+// Supplier categories are derived from budget categories (edit them in the Budget tab)
 const ETYPES = ["Payment Due","Meeting","Milestone","Fitting","Tasting","Personal"];
 const MEALS = ["Beef","Fish","Chicken","Vegetarian"];
 const RSVPS = ["Pending","Confirmed","Declined"];
@@ -272,7 +272,8 @@ function Gate({ onOk }) {
 
 /* ─── Supplier form ───────────────────────────────────────────────────────── */
 function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
-  const cat = form.category || "Venue";
+  const scats = budget.map(b => b.category);
+  const cat = form.category || scats[0] || "Other";
   const budgetRow = budget.find(b => b.category.toLowerCase().includes(cat.toLowerCase().split("/")[0]));
   const budgeted = budgetRow?.estimated || 0;
   const spent = budgetRow?.actual || 0;
@@ -290,7 +291,7 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
       <Field label="Supplier Name" required><input value={form.name || ""} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></Field>
       <Field label="Category" required>
         <select value={cat} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}>
-          {SCATS.map(c => <option key={c}>{c}</option>)}
+          {scats.map(c => <option key={c}>{c}</option>)}
         </select>
       </Field>
 
@@ -569,7 +570,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
         <input placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} style={{ flex: 1, minWidth: 130 }} />
         <select value={cat} onChange={e => setCat(e.target.value)} style={{ minWidth: 130 }}>
           <option value="All">All Categories</option>
-          {SCATS.map(c => <option key={c}>{c}</option>)}
+          {budget.map(b => <option key={b.category}>{b.category}</option>)}
         </select>
         <Btn onClick={() => { setForm(blankForm()); setSel(null); setModal("form"); }}>+ Add</Btn>
         <Btn v="ghost" onClick={downloadTemplate}>↓ Template</Btn>
