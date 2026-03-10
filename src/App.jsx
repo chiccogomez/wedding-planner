@@ -219,9 +219,26 @@ function Countdown() {
   );
 }
 
+/* ─── Flower SVG Logo ─────────────────────────────────────────────────────── */
+const FlowerLogo = ({ size = 80, color = "#C4967A" }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} fill="none" stroke={color} strokeWidth="1.4">
+    <circle cx="50" cy="34" r="18" />
+    <circle cx="50" cy="66" r="18" />
+    <circle cx="34" cy="50" r="18" />
+    <circle cx="66" cy="50" r="18" />
+    <circle cx="50" cy="50" r="7" />
+    <circle cx="50" cy="50" r="2.5" fill={color} />
+  </svg>
+);
+
 /* ─── Public Landing Page ─────────────────────────────────────────────────── */
 function Landing({ onEnter }) {
   const [adminClicks, setAdminClicks] = useState(0);
+  const [rsvpName, setRsvpName] = useState("");
+  const [rsvpAttending, setRsvpAttending] = useState(null); // true/false/null
+  const [rsvpNote, setRsvpNote] = useState("");
+  const [rsvpSent, setRsvpSent] = useState(false);
+  const [rsvpError, setRsvpError] = useState("");
 
   const handleLogoClick = () => {
     const next = adminClicks + 1;
@@ -229,102 +246,185 @@ function Landing({ onEnter }) {
     if (next >= 5) { setAdminClicks(0); onEnter(); }
   };
 
-  const details = [
-    { icon: "✦", label: "Ceremony", value: "Our Lady of Lourdes Parish", sub: "3:00 PM" },
-    { icon: "✦", label: "Reception", value: "Antonio's Restaurant", sub: "Tagaytay City" },
-    { icon: "✦", label: "Dress Code", value: "Black Tie", sub: "Formal attire" },
-  ];
+  const handleRsvp = () => {
+    if (!rsvpName.trim()) { setRsvpError("Please enter your name."); return; }
+    if (rsvpAttending === null) { setRsvpError("Please select if you'll be attending."); return; }
+    // Save RSVP to localStorage so it can be reviewed in the dashboard
+    const rsvps = JSON.parse(localStorage.getItem("cRSVP") || "[]");
+    rsvps.push({ id: Date.now(), name: rsvpName.trim(), attending: rsvpAttending, note: rsvpNote.trim(), submittedAt: new Date().toISOString() });
+    localStorage.setItem("cRSVP", JSON.stringify(rsvps));
+    setRsvpSent(true);
+  };
+
+  const divider = (
+    <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "40px auto", maxWidth: 320 }}>
+      <div style={{ flex: 1, height: 1, background: "linear-gradient(to right, transparent, #C4967A55)" }} />
+      <FlowerLogo size={22} color="#C4967A" />
+      <div style={{ flex: 1, height: 1, background: "linear-gradient(to left, transparent, #C4967A55)" }} />
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--cr)", fontFamily: "'Jost', sans-serif", color: "var(--ink)" }}>
+    <div style={{ minHeight: "100vh", background: "#F5EFE6", fontFamily: "'Jost', sans-serif", color: "#2E2520" }}>
+
       {/* ── Hero ── */}
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", position: "relative", overflow: "hidden", textAlign: "center" }}>
-        {/* decorative rings */}
-        {[200, 360, 520].map((sz, i) => (
-          <div key={i} style={{ position: "absolute", width: sz, height: sz, borderRadius: "50%", border: `1px solid rgba(196,150,122,${.10 - i * .03})`, top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }} />
-        ))}
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px 60px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        {/* soft background gradient blobs */}
+        <div style={{ position: "absolute", top: "10%", left: "5%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(196,150,122,.12) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: "10%", right: "5%", width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(122,158,173,.10) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-        <div className="fade" style={{ zIndex: 1, maxWidth: 560 }}>
-          {/* date pill */}
-          <p style={{ fontSize: 9, letterSpacing: 6, color: "var(--r)", textTransform: "uppercase", marginBottom: 28, fontWeight: 500 }}>
-            January 15, 2027
-          </p>
-
-          {/* monogram / logo — click 5× to open admin */}
-          <div onClick={handleLogoClick} style={{ cursor: "default", userSelect: "none", marginBottom: 10 }}>
-            <h1 className="sf" style={{ fontSize: 72, fontWeight: 300, lineHeight: 1, color: "var(--ink)", letterSpacing: -1 }}>
-              C <span style={{ color: "var(--g)", fontSize: 52 }}>&amp;</span> M
-            </h1>
+        <div className="fade" style={{ zIndex: 1, maxWidth: 480 }}>
+          {/* flower logo — click 5× to open admin */}
+          <div onClick={handleLogoClick} style={{ cursor: "default", userSelect: "none", marginBottom: 28, display: "flex", justifyContent: "center" }}>
+            <FlowerLogo size={72} color="#C4967A" />
           </div>
 
-          <h2 className="sf" style={{ fontSize: 22, fontWeight: 300, letterSpacing: 4, color: "var(--m)", marginBottom: 6, textTransform: "uppercase" }}>
-            Chicco &amp; Michelle
-          </h2>
+          <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 20 }}>
+            Together with their families
+          </p>
 
-          <div style={{ width: 44, height: 1, background: "linear-gradient(to right, transparent, var(--g), transparent)", margin: "24px auto" }} />
+          <h1 className="sf" style={{ fontSize: 58, fontWeight: 300, lineHeight: 1.05, color: "#2E2520", marginBottom: 6 }}>
+            Chicco
+          </h1>
+          <p className="sf" style={{ fontSize: 24, color: "#B8976A", fontStyle: "italic", marginBottom: 4 }}>&amp;</p>
+          <h1 className="sf" style={{ fontSize: 58, fontWeight: 300, lineHeight: 1.05, color: "#2E2520", marginBottom: 24 }}>
+            Michelle
+          </h1>
 
-          <p className="sf" style={{ fontSize: 16, color: "var(--m)", fontStyle: "italic", lineHeight: 2, marginBottom: 40 }}>
-            Together with their families,<br />
-            we joyfully invite you to celebrate<br />
-            the beginning of their forever.
+          <p style={{ fontSize: 9, letterSpacing: 6, color: "#7A6E68", textTransform: "uppercase", marginBottom: 36 }}>
+            Request the honour of your presence
           </p>
 
           {/* countdown */}
-          <div style={{ marginBottom: 52 }}>
-            <Countdown />
-          </div>
+          <Countdown />
 
-          {/* save the date badge */}
-          <div style={{ display: "inline-block", border: "1px solid var(--r)", borderRadius: 2, padding: "10px 28px", fontSize: 9, letterSpacing: 5, textTransform: "uppercase", color: "var(--r)", marginBottom: 8 }}>
-            Save the Date
-          </div>
+          <p style={{ fontSize: 11, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase", marginTop: 32 }}>
+            January 15, 2027 · Tagaytay
+          </p>
         </div>
 
-        {/* scroll cue */}
-        <div style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", fontSize: 10, letterSpacing: 3, color: "var(--m)", textTransform: "uppercase", opacity: 0.6 }}>
-          scroll ↓
-        </div>
+        <div style={{ position: "absolute", bottom: 28, left: "50%", transform: "translateX(-50%)", fontSize: 9, letterSpacing: 4, color: "#B8A898", textTransform: "uppercase" }}>scroll ↓</div>
       </div>
 
-      {/* ── Details Section ── */}
-      <div style={{ background: "var(--ink)", color: "var(--cr)", padding: "72px 24px", textAlign: "center" }}>
-        <p style={{ fontSize: 9, letterSpacing: 6, color: "var(--g)", textTransform: "uppercase", marginBottom: 14 }}>Wedding Details</p>
-        <h3 className="sf" style={{ fontSize: 36, fontWeight: 300, marginBottom: 52, color: "var(--cr)" }}>Join Us in Tagaytay</h3>
-
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 40, maxWidth: 780, margin: "0 auto" }}>
-          {details.map((d, i) => (
-            <div key={i} style={{ flex: "1 1 200px", maxWidth: 240 }}>
-              <div style={{ fontSize: 10, color: "var(--r)", marginBottom: 12, letterSpacing: 3 }}>{d.icon}</div>
-              <p style={{ fontSize: 9, letterSpacing: 5, color: "var(--g)", textTransform: "uppercase", marginBottom: 8 }}>{d.label}</p>
-              <p className="sf" style={{ fontSize: 20, fontWeight: 300, color: "var(--cr)", marginBottom: 4 }}>{d.value}</p>
-              <p style={{ fontSize: 12, color: "#8A8078" }}>{d.sub}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Message Section ── */}
-      <div style={{ padding: "72px 24px", textAlign: "center", maxWidth: 620, margin: "0 auto" }}>
-        <p style={{ fontSize: 9, letterSpacing: 6, color: "var(--r)", textTransform: "uppercase", marginBottom: 14 }}>A Note From Us</p>
-        <h3 className="sf" style={{ fontSize: 36, fontWeight: 300, marginBottom: 28, color: "var(--ink)" }}>
-          We can't wait to celebrate<br />with you.
-        </h3>
-        <p style={{ fontSize: 14, color: "var(--m)", lineHeight: 2, fontFamily: "Georgia, serif", fontStyle: "italic" }}>
-          "Two souls, one heart. Thank you for being part of our story — your presence on our special day means everything to us."
+      {/* ── Tagaytay quote ── */}
+      <div style={{ background: "#EDE7D9", padding: "72px 24px", textAlign: "center" }}>
+        <p className="sf" style={{ fontSize: 22, fontWeight: 300, fontStyle: "italic", color: "#7A6E68", lineHeight: 1.9, maxWidth: 480, margin: "0 auto" }}>
+          "Join us in celebrating our union beneath the open skies of Tagaytay, where the lake meets the mountains and the evening glows golden."
         </p>
-        <div style={{ width: 44, height: 1, background: "linear-gradient(to right, transparent, var(--g), transparent)", margin: "36px auto" }} />
-        <p className="sf" style={{ fontSize: 28, fontWeight: 300, color: "var(--ink)", letterSpacing: 2 }}>Chicco &amp; Michelle</p>
-        <p style={{ fontSize: 10, letterSpacing: 4, color: "var(--m)", textTransform: "uppercase", marginTop: 8 }}>January 15, 2027</p>
+      </div>
+
+      {/* ── The Celebration ── */}
+      <div style={{ padding: "72px 24px", textAlign: "center", maxWidth: 480, margin: "0 auto" }}>
+        <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 12 }}>The Celebration</p>
+        <h2 className="sf" style={{ fontSize: 38, fontWeight: 300, color: "#2E2520", marginBottom: 40 }}>January 15, 2027</h2>
+
+        {/* Ceremony card */}
+        <div style={{ border: "1px solid #D8CFC4", borderRadius: 4, padding: "24px 28px", marginBottom: 16, textAlign: "left", background: "#FDFAF5" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 500 }}>3:00 PM</span>
+            <div style={{ width: 1, height: 12, background: "#D8CFC4" }} />
+            <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase", fontWeight: 500 }}>Wedding Ceremony</span>
+          </div>
+          <p className="sf" style={{ fontSize: 22, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Our Lady of Lourdes Parish</p>
+          <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
+        </div>
+
+        {/* Reception card */}
+        <div style={{ border: "1px solid #D8CFC4", borderRadius: 4, padding: "24px 28px", textAlign: "left", background: "#FDFAF5" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 500 }}>5:00 PM</span>
+            <div style={{ width: 1, height: 12, background: "#D8CFC4" }} />
+            <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase", fontWeight: 500 }}>Cocktails &amp; Dinner</span>
+          </div>
+          <p className="sf" style={{ fontSize: 22, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Antonio's Restaurant</p>
+          <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
+        </div>
+
+        {divider}
+
+        {/* Dress code accent */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(196,150,122,.10)", border: "1px solid rgba(196,150,122,.25)", borderRadius: 3, padding: "10px 22px" }}>
+          <span style={{ fontSize: 9, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>Dress Code</span>
+          <div style={{ width: 1, height: 12, background: "#C4967A55" }} />
+          <span className="sf" style={{ fontSize: 16, color: "#2E2520", fontStyle: "italic" }}>Black Tie</span>
+        </div>
+      </div>
+
+      {/* ── RSVP ── */}
+      <div style={{ background: "#EDE7D9", padding: "72px 24px" }}>
+        <div style={{ maxWidth: 420, margin: "0 auto", textAlign: "center" }}>
+          <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 12 }}>Kindly Reply</p>
+          <h2 className="sf" style={{ fontSize: 38, fontWeight: 300, color: "#2E2520", marginBottom: 16 }}>Will You Join Us?</h2>
+          <p style={{ fontSize: 13, color: "#9A8E88", fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.8, marginBottom: 36 }}>
+            Please let us know by July 2026 so we can plan accordingly. We'd love to celebrate with you.
+          </p>
+
+          {rsvpSent ? (
+            <div style={{ border: "1px solid #7A9E8A", borderRadius: 4, padding: "32px 24px", background: "rgba(122,158,138,.08)" }}>
+              <FlowerLogo size={40} color="#7A9E8A" />
+              <p className="sf" style={{ fontSize: 22, color: "#2E2520", marginTop: 16, marginBottom: 8 }}>Thank you, {rsvpName}!</p>
+              <p style={{ fontSize: 13, color: "#7A9E8A" }}>
+                {rsvpAttending ? "We're so excited to celebrate with you! 🎉" : "We'll miss you, but we understand. Thank you for letting us know."}
+              </p>
+            </div>
+          ) : (
+            <div style={{ border: "1px solid #D8CFC4", borderRadius: 4, padding: "32px 28px", background: "#FDFAF5", textAlign: "left" }}>
+              {/* Name */}
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>Your Name</p>
+                <input value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }}
+                  placeholder="Full name"
+                  style={{ width: "100%", border: "none", borderBottom: "1px solid #D8CFC4", borderRadius: 0, background: "transparent", padding: "8px 0", fontSize: 14, color: "#2E2520", outline: "none", fontFamily: "'Jost', sans-serif" }} />
+              </div>
+
+              {/* Attending */}
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 12 }}>Will you be attending?</p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {[{ label: "Joyfully Accepts", val: true }, { label: "Regretfully Declines", val: false }].map(opt => (
+                    <button key={String(opt.val)} onClick={() => { setRsvpAttending(opt.val); setRsvpError(""); }}
+                      style={{ flex: 1, padding: "11px 8px", fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", border: "1px solid", borderRadius: 3, cursor: "pointer", transition: "all .2s", fontFamily: "'Jost', sans-serif", fontWeight: 500,
+                        background: rsvpAttending === opt.val ? (opt.val ? "#7A9E8A" : "#C47A7A") : "transparent",
+                        color: rsvpAttending === opt.val ? "#FDFAF5" : "#7A6E68",
+                        borderColor: rsvpAttending === opt.val ? (opt.val ? "#7A9E8A" : "#C47A7A") : "#D8CFC4",
+                      }}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Note */}
+              <div style={{ marginBottom: 24 }}>
+                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>A note for the couple <span style={{ color: "#C4B8B0" }}>(optional)</span></p>
+                <textarea value={rsvpNote} onChange={e => setRsvpNote(e.target.value)}
+                  placeholder="Share a message, well wishes, or dietary notes..."
+                  rows={3}
+                  style={{ width: "100%", border: "1px solid #D8CFC4", borderRadius: 3, background: "transparent", padding: "10px 12px", fontSize: 13, color: "#2E2520", outline: "none", resize: "vertical", fontFamily: "Georgia, serif", fontStyle: "italic" }} />
+              </div>
+
+              {rsvpError && <p style={{ fontSize: 12, color: "#C47A7A", marginBottom: 12 }}>{rsvpError}</p>}
+
+              <button onClick={handleRsvp}
+                style={{ width: "100%", background: "#7A6E68", color: "#F5EFE6", border: "none", padding: "14px", fontSize: 9, letterSpacing: 4, textTransform: "uppercase", borderRadius: 3, cursor: "pointer", fontFamily: "'Jost', sans-serif", fontWeight: 500, transition: "background .2s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#C4967A"}
+                onMouseLeave={e => e.currentTarget.style.background = "#7A6E68"}>
+                Send My Reply
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Footer ── */}
-      <div style={{ background: "var(--l)", borderTop: "1px solid #D8D0C4", padding: "28px 24px", textAlign: "center" }}>
-        <p style={{ fontSize: 10, letterSpacing: 3, color: "var(--m)", textTransform: "uppercase" }}>
-          Chicco &amp; Michelle · 15.01.2027 · Tagaytay
-        </p>
-        <p style={{ fontSize: 11, color: "#C0B4A8", marginTop: 8 }}>
-          More details to follow — watch this space.
-        </p>
+      <div style={{ padding: "40px 24px", textAlign: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 16 }}>
+          <div style={{ height: 1, width: 60, background: "#D8CFC4" }} />
+          <FlowerLogo size={18} color="#C4967A" />
+          <div style={{ height: 1, width: 60, background: "#D8CFC4" }} />
+        </div>
+        <p className="sf" style={{ fontSize: 20, fontWeight: 300, color: "#2E2520", marginBottom: 6 }}>Chicco &amp; Michelle</p>
+        <p style={{ fontSize: 10, letterSpacing: 3, color: "#B8A898", textTransform: "uppercase" }}>January 15, 2027 · Tagaytay</p>
       </div>
     </div>
   );
