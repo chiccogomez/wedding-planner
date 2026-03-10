@@ -219,6 +219,137 @@ function Countdown() {
   );
 }
 
+/* ─── Taal Volcano Sketch ─────────────────────────────────────────────────── */
+const TaalSketch = ({ width = 400, color = "#C4967A" }) => (
+  <svg viewBox="0 0 400 220" width={width} height={width * 220 / 400} fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.82 }}>
+    {/* Sky clouds */}
+    <path d="M60 38 Q72 30 84 36 Q88 26 100 28 Q114 22 118 34 Q126 30 128 38" strokeWidth="1" opacity="0.4"/>
+    <path d="M280 28 Q292 20 308 24 Q316 16 330 20 Q344 18 348 28 Q356 24 360 32" strokeWidth="1" opacity="0.4"/>
+    {/* Distant mountains / horizon ridge */}
+    <path d="M0 90 Q40 72 80 80 Q120 68 160 75 Q200 65 240 72 Q280 62 320 70 Q360 65 400 75 L400 95 L0 95 Z" strokeWidth="1.2" fill="rgba(196,150,122,.06)" opacity="0.7"/>
+    {/* Lake surface — wide caldera */}
+    <path d="M30 130 Q100 118 200 122 Q300 118 370 130" strokeWidth="1.4"/>
+    <path d="M20 138 Q100 128 200 132 Q300 128 380 138" strokeWidth="0.8" opacity="0.5"/>
+    <path d="M40 146 Q120 138 200 140 Q280 138 360 146" strokeWidth="0.6" opacity="0.35"/>
+    {/* Lake ripples */}
+    <path d="M80 134 Q100 131 120 134" strokeWidth="0.7" opacity="0.4"/>
+    <path d="M170 128 Q200 125 230 128" strokeWidth="0.7" opacity="0.4"/>
+    <path d="M270 133 Q295 130 320 133" strokeWidth="0.7" opacity="0.4"/>
+    {/* Taal volcano island — center */}
+    <path d="M158 122 Q175 100 200 96 Q225 100 242 122" strokeWidth="1.6"/>
+    {/* Volcano crater rim */}
+    <path d="M178 104 Q190 98 200 97 Q210 98 222 104" strokeWidth="1.2"/>
+    {/* Crater lake inside volcano */}
+    <ellipse cx="200" cy="108" rx="12" ry="5" strokeWidth="1" opacity="0.7"/>
+    {/* Volcano island slopes / vegetation lines */}
+    <path d="M165 118 Q170 112 175 108" strokeWidth="0.8" opacity="0.5"/>
+    <path d="M235 118 Q230 112 225 108" strokeWidth="0.8" opacity="0.5"/>
+    <path d="M172 120 Q176 115 180 111" strokeWidth="0.7" opacity="0.4"/>
+    <path d="M228 120 Q224 115 220 111" strokeWidth="0.7" opacity="0.4"/>
+    {/* Foreground rolling hills */}
+    <path d="M0 165 Q50 142 110 155 Q160 145 200 150 Q240 145 290 155 Q340 145 400 160 L400 220 L0 220 Z" strokeWidth="1.6" fill="rgba(196,150,122,.07)"/>
+    {/* Foreground hill detail lines */}
+    <path d="M20 168 Q50 158 80 165" strokeWidth="0.8" opacity="0.45"/>
+    <path d="M300 162 Q330 155 360 162" strokeWidth="0.8" opacity="0.45"/>
+    {/* Foreground trees / vegetation left */}
+    <path d="M35 165 L35 152 M28 158 Q35 148 42 158" strokeWidth="1.1" opacity="0.6"/>
+    <path d="M55 162 L55 150 M48 156 Q55 146 62 156" strokeWidth="1.1" opacity="0.6"/>
+    <path d="M18 170 L18 160 M13 165 Q18 157 23 165" strokeWidth="0.9" opacity="0.5"/>
+    {/* Foreground trees / vegetation right */}
+    <path d="M345 162 L345 150 M338 156 Q345 146 352 156" strokeWidth="1.1" opacity="0.6"/>
+    <path d="M365 165 L365 154 M358 159 Q365 150 372 159" strokeWidth="1.1" opacity="0.6"/>
+    <path d="M380 168 L380 159 M375 163 Q380 155 385 163" strokeWidth="0.9" opacity="0.5"/>
+    {/* Foreground grass tufts */}
+    <path d="M100 170 Q104 162 108 170 M108 170 Q112 163 116 170" strokeWidth="0.9" opacity="0.5"/>
+    <path d="M200 155 Q204 148 208 155 M208 155 Q212 149 216 155" strokeWidth="0.9" opacity="0.5"/>
+    <path d="M270 165 Q274 158 278 165 M278 165 Q282 159 286 165" strokeWidth="0.9" opacity="0.5"/>
+    {/* Observation deck railing hint (Tagaytay viewpoint) */}
+    <path d="M130 178 L270 178" strokeWidth="1" opacity="0.3"/>
+    <path d="M135 178 L135 185 M160 178 L160 185 M185 178 L185 185 M210 178 L210 185 M235 178 L235 185 M260 178 L260 185" strokeWidth="0.8" opacity="0.25"/>
+  </svg>
+);
+
+/* ─── Church Sketch ───────────────────────────────────────────────────────── */
+const ChurchSketch = ({ width = 400, color = "#C4967A" }) => (
+  <svg viewBox="0 0 400 280" width={width} height={width * 280 / 400} fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.82 }}>
+    {/* Ground / path */}
+    <path d="M0 270 Q200 265 400 270" strokeWidth="1.2" opacity="0.4"/>
+    <path d="M120 270 Q200 267 280 270" strokeWidth="0.8" opacity="0.3"/>
+    {/* Steps */}
+    <path d="M130 262 L270 262" strokeWidth="1.2"/>
+    <path d="M140 256 L260 256" strokeWidth="1.2"/>
+    <path d="M148 250 L252 250" strokeWidth="1.2"/>
+    {/* Main facade body */}
+    <rect x="148" y="130" width="104" height="120" strokeWidth="1.5"/>
+    {/* Facade stone texture hints */}
+    <path d="M148 155 L252 155 M148 175 L252 175 M148 195 L252 195 M148 215 L252 215" strokeWidth="0.5" opacity="0.2"/>
+    {/* Triangular pediment */}
+    <path d="M140 130 L200 90 L260 130" strokeWidth="1.6"/>
+    {/* Pediment cross */}
+    <path d="M200 78 L200 92 M194 84 L206 84" strokeWidth="1.4"/>
+    {/* Rose window */}
+    <circle cx="200" cy="148" r="18" strokeWidth="1.3"/>
+    <circle cx="200" cy="148" r="10" strokeWidth="0.9"/>
+    <circle cx="200" cy="148" r="4" strokeWidth="0.9"/>
+    {/* Rose window spokes */}
+    <path d="M200 130 L200 138 M200 158 L200 166 M182 148 L190 148 M210 148 L218 148" strokeWidth="0.9"/>
+    <path d="M187 135 L192 140 M208 156 L213 161 M187 161 L192 156 M208 140 L213 135" strokeWidth="0.8"/>
+    {/* Main arched door */}
+    <path d="M178 250 L178 200 Q178 185 200 185 Q222 185 222 200 L222 250" strokeWidth="1.5"/>
+    {/* Door panels */}
+    <path d="M178 220 L222 220" strokeWidth="0.9"/>
+    <path d="M200 185 L200 250" strokeWidth="0.9"/>
+    <rect x="182" y="222" width="14" height="18" strokeWidth="0.7" opacity="0.5"/>
+    <rect x="204" y="222" width="14" height="18" strokeWidth="0.7" opacity="0.5"/>
+    <rect x="182" y="200" width="14" height="16" rx="7" strokeWidth="0.7" opacity="0.5"/>
+    <rect x="204" y="200" width="14" height="16" rx="7" strokeWidth="0.7" opacity="0.5"/>
+    {/* Door handle */}
+    <circle cx="197" cy="235" r="2" strokeWidth="1" fill="none"/>
+    <circle cx="203" cy="235" r="2" strokeWidth="1" fill="none"/>
+    {/* Left side windows */}
+    <path d="M156 180 L156 215 Q156 222 162 222 Q168 222 168 215 L168 180" strokeWidth="1.1"/>
+    <path d="M156 195 L168 195" strokeWidth="0.7" opacity="0.5"/>
+    <path d="M156 207 L168 207" strokeWidth="0.7" opacity="0.5"/>
+    {/* Right side windows */}
+    <path d="M232 180 L232 215 Q232 222 238 222 Q244 222 244 215 L244 180" strokeWidth="1.1"/>
+    <path d="M232 195 L244 195" strokeWidth="0.7" opacity="0.5"/>
+    <path d="M232 207 L244 207" strokeWidth="0.7" opacity="0.5"/>
+    {/* Bell tower — left */}
+    <rect x="60" y="140" width="60" height="130" strokeWidth="1.5"/>
+    {/* Bell tower levels */}
+    <path d="M60 200 L120 200" strokeWidth="1"/>
+    <path d="M60 170 L120 170" strokeWidth="0.8"/>
+    {/* Tower stone texture */}
+    <path d="M60 155 L120 155 M60 185 L120 185 M60 215 L120 215" strokeWidth="0.4" opacity="0.2"/>
+    {/* Bell window arches */}
+    <path d="M70 148 L70 165 Q70 172 80 172 Q90 172 90 165 L90 148" strokeWidth="1.1"/>
+    <path d="M94 148 L94 165 Q94 172 104 172 Q114 172 114 165 L114 148" strokeWidth="1.1"/>
+    {/* Bell shapes inside arches */}
+    <path d="M76 158 Q80 153 84 158 Q84 163 80 165 Q76 163 76 158" strokeWidth="0.9" opacity="0.7"/>
+    <path d="M100 158 Q104 153 108 158 Q108 163 104 165 Q100 163 100 158" strokeWidth="0.9" opacity="0.7"/>
+    {/* Tower spire */}
+    <path d="M60 140 L90 108 L120 140" strokeWidth="1.4"/>
+    {/* Tower cross */}
+    <path d="M90 95 L90 110 M84 101 L96 101" strokeWidth="1.4"/>
+    {/* Tower door */}
+    <path d="M78 270 L78 240 Q78 232 90 232 Q102 232 102 240 L102 270" strokeWidth="1.2"/>
+    {/* Tower window mid */}
+    <path d="M72 210 L72 225 Q72 230 78 230 Q84 230 84 225 L84 210" strokeWidth="1"/>
+    <path d="M96 210 L96 225 Q96 230 102 230 Q108 230 108 225 L108 210" strokeWidth="1"/>
+    {/* Vegetation / shrubs at base */}
+    <path d="M30 265 Q38 252 46 265 Q54 252 62 265" strokeWidth="1.1" opacity="0.55"/>
+    <path d="M122 265 Q128 256 134 265 Q140 256 146 265" strokeWidth="1.1" opacity="0.55"/>
+    <path d="M254 265 Q260 256 266 265 Q272 256 278 265" strokeWidth="1.1" opacity="0.55"/>
+    <path d="M338 265 Q346 252 354 265 Q362 252 370 265" strokeWidth="1.1" opacity="0.55"/>
+    {/* Tall palm tree right */}
+    <path d="M350 270 Q348 230 352 200 Q354 170 350 145" strokeWidth="1.3" opacity="0.6"/>
+    <path d="M350 145 Q340 132 328 138 M350 145 Q342 128 335 130 M350 145 Q358 128 368 134 M350 145 Q362 132 372 138" strokeWidth="1.1" opacity="0.55"/>
+    {/* Small palm left */}
+    <path d="M28 270 Q26 248 30 228" strokeWidth="1.1" opacity="0.5"/>
+    <path d="M30 228 Q22 218 14 222 M30 228 Q24 214 18 216 M30 228 Q36 214 44 220" strokeWidth="1" opacity="0.5"/>
+  </svg>
+);
+
 /* ─── Flower SVG Logo ─────────────────────────────────────────────────────── */
 const FlowerLogo = ({ size = 80, color = "#C4967A" }) => (
   <svg viewBox="0 0 100 100" width={size} height={size} fill="none" stroke={color} strokeWidth="1.4">
@@ -306,8 +437,12 @@ function Landing({ onEnter }) {
         <div style={{ position: "absolute", bottom: 28, left: "50%", transform: "translateX(-50%)", fontSize: 9, letterSpacing: 4, color: "#B8A898", textTransform: "uppercase" }}>scroll ↓</div>
       </div>
 
-      {/* ── Tagaytay quote ── */}
+      {/* ── Tagaytay quote + Taal sketch ── */}
       <div style={{ background: "#EDE7D9", padding: "72px 24px", textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
+          <TaalSketch width={Math.min(480, typeof window !== "undefined" ? window.innerWidth - 48 : 420)} />
+        </div>
+        <p style={{ fontSize: 9, letterSpacing: 5, color: "#C4967A", textTransform: "uppercase", marginBottom: 20, opacity: 0.7 }}>Taal Lake · Tagaytay</p>
         <p className="sf" style={{ fontSize: 22, fontWeight: 300, fontStyle: "italic", color: "#7A6E68", lineHeight: 1.9, maxWidth: 480, margin: "0 auto" }}>
           "Join us in celebrating our union beneath the open skies of Tagaytay, where the lake meets the mountains and the evening glows golden."
         </p>
@@ -317,6 +452,11 @@ function Landing({ onEnter }) {
       <div style={{ padding: "72px 24px", textAlign: "center", maxWidth: 480, margin: "0 auto" }}>
         <p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 12 }}>The Celebration</p>
         <h2 className="sf" style={{ fontSize: 38, fontWeight: 300, color: "#2E2520", marginBottom: 40 }}>January 15, 2027</h2>
+
+        {/* Church sketch */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+          <ChurchSketch width={340} />
+        </div>
 
         {/* Ceremony card */}
         <div style={{ border: "1px solid #D8CFC4", borderRadius: 4, padding: "24px 28px", marginBottom: 16, textAlign: "left", background: "#FDFAF5" }}>
