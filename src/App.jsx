@@ -430,7 +430,7 @@ function Landing({ onEnter }) {
       <iframe
         title={name}
         src={embedSrc}
-        width="100%" height="220"
+        width="100%" height="160"
         style={{ border: 0, display: "block" }}
         allowFullScreen="" loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
@@ -473,6 +473,76 @@ function Landing({ onEnter }) {
         <p className="sf" style={{ fontSize: 23, fontWeight: 300, fontStyle: "italic", color: "#6E6258", lineHeight: 2, maxWidth: 500, margin: "0 auto" }}>
           "Join us in celebrating our union beneath the open skies of Tagaytay, where the lake meets the mountains and the evening glows golden."
         </p>
+      </div>
+
+      {/* ── The Celebration ── */}
+      <div style={{ padding: "80px 24px", textAlign: "center", maxWidth: 540, margin: "0 auto" }}>
+        <SectionLabel>The Celebration</SectionLabel>
+        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 48 }}>January 15, 2027</h2>
+
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <ChurchSketch width={360} />
+        </div>
+
+        {/* Ceremony */}
+        <div style={{ borderRadius: 8, marginBottom: 16, textAlign: "left", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", overflow: "hidden", border: "1px solid #EDE7D9" }}>
+          <div style={{ height: 4, background: "linear-gradient(to right, #C4967A, #B8976A)" }} />
+          <div style={{ padding: "22px 26px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 600 }}>3:00 PM</span>
+              <div style={{ width: 1, height: 12, background: "#E0D8D0" }} />
+              <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Wedding Ceremony</span>
+            </div>
+            <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Our Lady of Lourdes Parish</p>
+            <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
+          </div>
+        </div>
+
+        {/* Reception */}
+        <div style={{ borderRadius: 8, textAlign: "left", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", overflow: "hidden", border: "1px solid #EDE7D9" }}>
+          <div style={{ height: 4, background: "linear-gradient(to right, #7A9EAD, #8AAEBA)" }} />
+          <div style={{ padding: "22px 26px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 600 }}>5:00 PM</span>
+              <div style={{ width: 1, height: 12, background: "#E0D8D0" }} />
+              <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Cocktails &amp; Dinner</span>
+            </div>
+            <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Antonio's Restaurant</p>
+            <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
+          </div>
+        </div>
+
+        {divider}
+
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(196,150,122,.10)", border: "1px solid rgba(196,150,122,.3)", borderRadius: 4, padding: "12px 28px" }}>
+          <span style={{ fontSize: 9, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>Dress Code</span>
+          <div style={{ width: 1, height: 14, background: "#C4967A55" }} />
+          <span className="sf" style={{ fontSize: 17, color: "#2E2520", fontStyle: "italic" }}>Barong Tagalog / Formal Gown</span>
+        </div>
+      </div>
+
+      {/* ── Maps ── */}
+      <div style={{ background: "#EDE7D9", padding: "80px 24px" }}>
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 48 }}>
+            <SectionLabel>Getting There</SectionLabel>
+            <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520" }}>Find Your Way</h2>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
+            <MapCard
+              name="Wedding Ceremony"
+              address="Our Lady of Lourdes Parish, Tagaytay"
+              color="#C4967A"
+              embedSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3868.7!2d120.9623!3d14.1112!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b1b7d2f0001%3A0x1234567890abcdef!2sOur+Lady+of+Lourdes+Parish+Tagaytay!5e0!3m2!1sen!2sph!4v1699000000000!5m2!1sen!2sph"
+            />
+            <MapCard
+              name="Cocktails & Reception"
+              address="Antonio's Restaurant, Tagaytay"
+              color="#7A9EAD"
+              embedSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3868.5!2d120.9602!3d14.1145!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b2c3a4f5678%3A0xabcdef1234567890!2sAntonio%27s+Restaurant+Tagaytay!5e0!3m2!1sen!2sph!4v1699000000001!5m2!1sen!2sph"
+            />
+          </div>
+        </div>
       </div>
 
       {/* ── About Us ── */}
@@ -557,76 +627,6 @@ function Landing({ onEnter }) {
           ))}
         </div>
         <p style={{ fontSize: 11, color: "rgba(196,150,122,.4)", marginTop: 32, letterSpacing: 2, textTransform: "uppercase" }}>Prenup shoot — TBD</p>
-      </div>
-
-      {/* ── The Celebration ── */}
-      <div style={{ padding: "80px 24px", textAlign: "center", maxWidth: 540, margin: "0 auto" }}>
-        <SectionLabel>The Celebration</SectionLabel>
-        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 48 }}>January 15, 2027</h2>
-
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-          <ChurchSketch width={360} />
-        </div>
-
-        {/* Ceremony */}
-        <div style={{ borderRadius: 8, marginBottom: 16, textAlign: "left", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", overflow: "hidden", border: "1px solid #EDE7D9" }}>
-          <div style={{ height: 4, background: "linear-gradient(to right, #C4967A, #B8976A)" }} />
-          <div style={{ padding: "22px 26px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 600 }}>3:00 PM</span>
-              <div style={{ width: 1, height: 12, background: "#E0D8D0" }} />
-              <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Wedding Ceremony</span>
-            </div>
-            <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Our Lady of Lourdes Parish</p>
-            <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
-          </div>
-        </div>
-
-        {/* Reception */}
-        <div style={{ borderRadius: 8, textAlign: "left", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", overflow: "hidden", border: "1px solid #EDE7D9" }}>
-          <div style={{ height: 4, background: "linear-gradient(to right, #7A9EAD, #8AAEBA)" }} />
-          <div style={{ padding: "22px 26px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 600 }}>5:00 PM</span>
-              <div style={{ width: 1, height: 12, background: "#E0D8D0" }} />
-              <span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Cocktails &amp; Dinner</span>
-            </div>
-            <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Antonio's Restaurant</p>
-            <p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p>
-          </div>
-        </div>
-
-        {divider}
-
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(196,150,122,.10)", border: "1px solid rgba(196,150,122,.3)", borderRadius: 4, padding: "12px 28px" }}>
-          <span style={{ fontSize: 9, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>Dress Code</span>
-          <div style={{ width: 1, height: 14, background: "#C4967A55" }} />
-          <span className="sf" style={{ fontSize: 17, color: "#2E2520", fontStyle: "italic" }}>Barong Tagalog / Formal Gown</span>
-        </div>
-      </div>
-
-      {/* ── Maps ── */}
-      <div style={{ background: "#EDE7D9", padding: "80px 24px" }}>
-        <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <SectionLabel>Getting There</SectionLabel>
-            <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520" }}>Find Your Way</h2>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-            <MapCard
-              name="Wedding Ceremony"
-              address="Our Lady of Lourdes Parish, Tagaytay"
-              color="#C4967A"
-              embedSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3868.7!2d120.9623!3d14.1112!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b1b7d2f0001%3A0x1234567890abcdef!2sOur+Lady+of+Lourdes+Parish+Tagaytay!5e0!3m2!1sen!2sph!4v1699000000000!5m2!1sen!2sph"
-            />
-            <MapCard
-              name="Cocktails & Reception"
-              address="Antonio's Restaurant, Tagaytay"
-              color="#7A9EAD"
-              embedSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3868.5!2d120.9602!3d14.1145!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33bd6b2c3a4f5678%3A0xabcdef1234567890!2sAntonio%27s+Restaurant+Tagaytay!5e0!3m2!1sen!2sph!4v1699000000001!5m2!1sen!2sph"
-            />
-          </div>
-        </div>
       </div>
 
       {/* ── Fun Quiz ── */}
