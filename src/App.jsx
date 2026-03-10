@@ -469,7 +469,7 @@ function Landing({ onEnter }) {
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
           <TaalSketch width={Math.min(520, typeof window !== "undefined" ? window.innerWidth - 48 : 460)} />
         </div>
-        <p style={{ fontSize: 9, letterSpacing: 5, color: "#C4967A", textTransform: "uppercase", marginBottom: 20 }}>Taal Lake · Tagaytay City, Cavite</p>
+        <p style={{ fontSize: 9, letterSpacing: 5, color: "#C4967A", textTransform: "uppercase", marginBottom: 20 }}>Tagaytay City, Cavite</p>
         <p className="sf" style={{ fontSize: 23, fontWeight: 300, fontStyle: "italic", color: "#6E6258", lineHeight: 2, maxWidth: 500, margin: "0 auto" }}>
           "Join us in celebrating our union beneath the open skies of Tagaytay, where the lake meets the mountains and the evening glows golden."
         </p>
@@ -601,7 +601,7 @@ function Landing({ onEnter }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(196,150,122,.10)", border: "1px solid rgba(196,150,122,.3)", borderRadius: 4, padding: "12px 28px" }}>
           <span style={{ fontSize: 9, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>Dress Code</span>
           <div style={{ width: 1, height: 14, background: "#C4967A55" }} />
-          <span className="sf" style={{ fontSize: 17, color: "#2E2520", fontStyle: "italic" }}>Black Tie</span>
+          <span className="sf" style={{ fontSize: 17, color: "#2E2520", fontStyle: "italic" }}>Barong Tagalog / Formal Gown</span>
         </div>
       </div>
 
@@ -766,7 +766,7 @@ function Landing({ onEnter }) {
         <p className="sf" style={{ fontSize: 22, fontWeight: 300, color: "#2E2520", marginBottom: 6 }}>Chicco &amp; Michelle</p>
         <p style={{ fontSize: 10, letterSpacing: 3, color: "#B8A898", textTransform: "uppercase" }}>January 15, 2027 · Tagaytay</p>
         <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: 24 }}>
-          {["Ceremony · 3:00 PM", "Reception · 5:00 PM", "Black Tie"].map(t => (
+          {["Ceremony · 3:00 PM", "Reception · 5:00 PM", "Barong Tagalog / Formal Gown"].map(t => (
             <span key={t} style={{ fontSize: 9, letterSpacing: 2, color: "#C4B8AC", textTransform: "uppercase" }}>{t}</span>
           ))}
         </div>
