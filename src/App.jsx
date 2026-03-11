@@ -97,26 +97,33 @@ const computeSupplierTotal = (f) => {
 };
 
 const INIT_S = [
-  {id:1,name:"Antonio's Restaurant",category:"Venue",baseAmount:250000,hasDP:true,dpAmount:50000,dpDueDate:"2025-12-01",dpPaidDate:"2025-11-15",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:250000,paid:50000,dueDate:"2026-10-01",status:"Partial",notes:"Cocktail @ Lanai + Main Dining",payments:[{date:"2025-11-15",amount:50000,note:"Downpayment"}]},
-  {id:2,name:"Our Lady of Lourdes Parish",category:"Venue",baseAmount:15000,hasDP:false,dpAmount:0,dpDueDate:"",dpPaidDate:"",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:15000,paid:0,dueDate:"2026-12-01",status:"Unpaid",notes:"Church fee + stipend",payments:[]},
-  {id:3,name:"Photo/Video Team",category:"Photography",baseAmount:120000,hasDP:true,dpAmount:30000,dpDueDate:"2025-11-01",dpPaidDate:"2025-12-01",hasCrew:true,crewMeals:5000,hasOOT:true,ootFee:3000,total:128000,paid:30000,dueDate:"2026-11-15",status:"Partial",notes:"Full day + SDE",payments:[{date:"2025-12-01",amount:30000,note:"Downpayment"}]},
+  {id:1,name:"Antonio's",category:"Venue",baseAmount:2000000,hasDP:true,dpAmount:20000,dpDueDate:"2026-01-24",dpPaidDate:"2026-01-24",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:2000000,paid:20000,dueDate:"2026-12-31",status:"Partial",notes:"",payments:[{date:"2026-01-24",amount:20000,note:"Downpayment",mode:"BPI"}]},
+  {id:2,name:"Rosa Clara",category:"Wedding Dress",baseAmount:149000,hasDP:true,dpAmount:89400,dpDueDate:"2026-01-31",dpPaidDate:"2026-01-31",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:149000,paid:89400,dueDate:"2026-12-05",status:"Partial",notes:"",payments:[{date:"2026-01-31",amount:89400,note:"Downpayment",mode:"Bank Transfer"}]},
+  {id:3,name:"Mark Qua",category:"Hair and Make Up",baseAmount:105000,hasDP:true,dpAmount:10000,dpDueDate:"2026-02-20",dpPaidDate:"2026-02-20",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:105000,paid:10000,dueDate:"2026-12-31",status:"Partial",notes:"",payments:[{date:"2026-02-20",amount:10000,note:"Downpayment",mode:"Bank Transfer"}]},
+  {id:4,name:"Joseph Pascual",category:"Photography",baseAmount:180000,hasDP:true,dpAmount:90000,dpDueDate:"2026-03-05",dpPaidDate:"2026-03-05",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:180000,paid:90000,dueDate:"2026-12-05",status:"Partial",notes:"",payments:[{date:"2026-03-05",amount:90000,note:"Downpayment",mode:"Bank Transfer"}]},
+  {id:5,name:"Church",category:"Church",baseAmount:32400,hasDP:true,dpAmount:15000,dpDueDate:"2026-02-02",dpPaidDate:"2026-02-02",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:32400,paid:15000,dueDate:"2026-12-31",status:"Partial",notes:"Our Lady of Lourdes Parish",payments:[{date:"2026-02-02",amount:15000,note:"Downpayment",mode:"Cash"}]},
+  {id:6,name:"Bespoke Manila",category:"Coordinator",baseAmount:180000,hasDP:true,dpAmount:30000,dpDueDate:"2026-02-02",dpPaidDate:"2026-02-02",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:180000,paid:30000,dueDate:"2026-12-31",status:"Partial",notes:"",payments:[{date:"2026-02-02",amount:30000,note:"Downpayment",mode:"BDO"}]},
+  {id:7,name:"Nicolai",category:"Photography",baseAmount:106000,hasDP:true,dpAmount:20000,dpDueDate:"2026-03-01",dpPaidDate:"2026-03-01",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:106000,paid:20000,dueDate:"2026-12-05",status:"Partial",notes:"",payments:[{date:"2026-03-01",amount:20000,note:"Downpayment",mode:"BPI"}]},
+  {id:8,name:"Woodstock",category:"Videography",baseAmount:91000,hasDP:true,dpAmount:10000,dpDueDate:"2026-03-02",dpPaidDate:"2026-03-02",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:91000,paid:10000,dueDate:"2026-12-05",status:"Partial",notes:"",payments:[{date:"2026-03-02",amount:10000,note:"Downpayment",mode:"BPI"}]},
+  {id:9,name:"Il Fiore",category:"Styling and Flowers",baseAmount:259000,hasDP:true,dpAmount:77700,dpDueDate:"2026-02-26",dpPaidDate:"2026-02-26",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:259000,paid:77700,dueDate:"2026-12-05",status:"Partial",notes:"",payments:[{date:"2026-02-26",amount:77700,note:"Downpayment",mode:"BPI"}]},
+  {id:10,name:"Artuz",category:"Lights and Sounds",baseAmount:36000,hasDP:true,dpAmount:2000,dpDueDate:"2026-02-26",dpPaidDate:"2026-02-26",hasCrew:false,crewMeals:0,hasOOT:false,ootFee:0,total:36000,paid:2000,dueDate:"2026-12-05",status:"Partial",notes:"Balance split: ₱16,000 due Nov 14 + ₱18,000 due Dec 5",payments:[{date:"2026-02-26",amount:2000,note:"Downpayment",mode:"BPI"},{date:"2026-11-14",amount:16000,note:"2nd payment (pending)",mode:"BPI"},{date:"2026-12-05",amount:18000,note:"3rd payment (pending)",mode:"BPI"}]},
 ];
 const INIT_G = [
   {id:1,name:"Jose Santos",phone:"09171234567",group:"Groom",rsvp:"Confirmed",meal:"Beef",plusOne:false,table:"1",notes:""},
   {id:2,name:"Maria dela Cruz",phone:"09189876543",group:"Bride",rsvp:"Pending",meal:"",plusOne:true,table:"",notes:"Dietary restriction"},
 ];
 const INIT_B = [
-  {id:1,  category:"Church",                    estimated:32400,   actual:0},
+  {id:1,  category:"Church",                    estimated:32400,   actual:32400},
   {id:2,  category:"Wedding Rings",             estimated:100000,  actual:0},
-  {id:3,  category:"Coordinator",               estimated:200000,  actual:0},
-  {id:4,  category:"Venue",                     estimated:2000000, actual:0},
-  {id:5,  category:"Hair and Make Up",          estimated:105000,  actual:0},
-  {id:6,  category:"Photography",               estimated:300000,  actual:0},
-  {id:7,  category:"Videography",               estimated:100000,  actual:0},
-  {id:8,  category:"Styling and Flowers",       estimated:400000,  actual:0},
+  {id:3,  category:"Coordinator",               estimated:180000,  actual:180000},
+  {id:4,  category:"Venue",                     estimated:2000000, actual:2000000},
+  {id:5,  category:"Hair and Make Up",          estimated:105000,  actual:105000},
+  {id:6,  category:"Photography",               estimated:286000,  actual:286000},
+  {id:7,  category:"Videography",               estimated:91000,   actual:91000},
+  {id:8,  category:"Styling and Flowers",       estimated:259000,  actual:259000},
   {id:9,  category:"Entertainment / DJ / Strings", estimated:150000, actual:0},
-  {id:10, category:"Lights and Sounds",         estimated:50000,   actual:0},
-  {id:11, category:"Wedding Dress",             estimated:149000,  actual:0},
+  {id:10, category:"Lights and Sounds",         estimated:36000,   actual:36000},
+  {id:11, category:"Wedding Dress",             estimated:149000,  actual:149000},
   {id:12, category:"Barong",                    estimated:100000,  actual:0},
   {id:13, category:"Gown of Mothers",           estimated:150000,  actual:0},
   {id:14, category:"Gown of Entourage",         estimated:350000,  actual:0},
@@ -128,10 +135,20 @@ const INIT_B = [
   {id:20, category:"Others",                    estimated:100000,  actual:0},
 ];
 const INIT_E = [
-  {id:1,title:"Antonio's 2nd Payment",date:"2026-06-15",type:"Payment Due",amount:100000,notes:""},
-  {id:2,title:"Bridal Gown Fitting #1",date:"2026-03-20",type:"Fitting",amount:0,notes:""},
-  {id:3,title:"Menu Tasting @ Antonio's",date:"2026-05-10",type:"Tasting",amount:0,notes:""},
-  {id:4,title:"Prenuptial Shoot",date:"2026-04-05",type:"Milestone",amount:0,notes:"TBD"},
+  {id:1,title:"Artuz – 2nd Payment",date:"2026-11-14",type:"Payment Due",amount:16000,notes:"₱16,000 balance (BPI)"},
+  {id:2,title:"Joseph Pascual – Balance",date:"2026-12-05",type:"Payment Due",amount:90000,notes:"₱90,000 balance (Bank Transfer)"},
+  {id:3,title:"Nicolai – Balance",date:"2026-12-05",type:"Payment Due",amount:86000,notes:"₱86,000 balance (BPI)"},
+  {id:4,title:"Woodstock – Balance",date:"2026-12-05",type:"Payment Due",amount:81000,notes:"₱81,000 balance (BPI)"},
+  {id:5,title:"Il Fiore – Balance",date:"2026-12-05",type:"Payment Due",amount:181300,notes:"₱181,300 balance (BPI)"},
+  {id:6,title:"Rosa Clara – Balance",date:"2026-12-05",type:"Payment Due",amount:59600,notes:"₱59,600 balance (Bank Transfer)"},
+  {id:7,title:"Artuz – 3rd Payment",date:"2026-12-05",type:"Payment Due",amount:18000,notes:"₱18,000 balance (BPI)"},
+  {id:8,title:"Antonio's – Balance",date:"2026-12-31",type:"Payment Due",amount:1980000,notes:"₱1,980,000 balance (BPI)"},
+  {id:9,title:"Bespoke Manila – Balance",date:"2026-12-31",type:"Payment Due",amount:150000,notes:"₱150,000 balance (BDO)"},
+  {id:10,title:"Mark Qua – Balance",date:"2026-12-31",type:"Payment Due",amount:95000,notes:"₱95,000 balance"},
+  {id:11,title:"Church – Balance",date:"2026-12-31",type:"Payment Due",amount:17400,notes:"₱17,400 balance (Cash)"},
+  {id:12,title:"Bridal Gown Fitting #1",date:"2026-03-20",type:"Fitting",amount:0,notes:""},
+  {id:13,title:"Menu Tasting @ Antonio's",date:"2026-05-10",type:"Tasting",amount:0,notes:""},
+  {id:14,title:"Prenuptial Shoot",date:"2026-04-05",type:"Milestone",amount:0,notes:"TBD"},
 ];
 
 /* ─── localStorage helpers ────────────────────────────────────────────────── */
@@ -549,6 +566,62 @@ function Landing({ onEnter }) {
         </div>
       </div>
 
+      {/* ── RSVP ── */}
+      <div style={{ background: "linear-gradient(135deg, #EDE7D9, #E4DDD2)", padding: "80px 24px" }}>
+        <div style={{ maxWidth: 440, margin: "0 auto", textAlign: "center" }}>
+          <SectionLabel>Kindly Reply</SectionLabel>
+          <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 14 }}>Will You Join Us?</h2>
+          <p style={{ fontSize: 13, color: "#9A8E88", fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.9, marginBottom: 40 }}>
+            Please let us know by July 2026 so we can plan accordingly. We'd love to celebrate with you.
+          </p>
+          {rsvpSent ? (
+            <div style={{ borderRadius: 10, padding: "40px 28px", background: "#fff", border: "1px solid #C4E0D4", boxShadow: "0 4px 20px rgba(46,37,32,.06)", textAlign: "center" }}>
+              <FlowerLogo size={44} color="#7A9E8A" />
+              <p className="sf" style={{ fontSize: 26, color: "#2E2520", margin: "18px 0 8px" }}>Thank you, {rsvpName}!</p>
+              <p style={{ fontSize: 13, color: "#7A9E8A", lineHeight: 1.8 }}>
+                {rsvpAttending ? "We're so excited to celebrate with you!" : "We'll miss you, but we understand. Thank you for letting us know."}
+              </p>
+            </div>
+          ) : (
+            <div style={{ borderRadius: 10, padding: "36px 32px", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", border: "1px solid #EDE7D9", textAlign: "left" }}>
+              <div style={{ marginBottom: 22 }}>
+                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>Your Name</p>
+                <input value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }}
+                  placeholder="Full name"
+                  style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E0D8D0", borderRadius: 0, background: "transparent", padding: "8px 0", fontSize: 15, color: "#2E2520", outline: "none", fontFamily: "'Jost', sans-serif" }} />
+              </div>
+              <div style={{ marginBottom: 22 }}>
+                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 12 }}>Will you be attending?</p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {[{ label: "Joyfully Accepts", val: true, ac: "#7A9E8A" }, { label: "Regretfully Declines", val: false, ac: "#C47A7A" }].map(opt => (
+                    <button key={String(opt.val)} onClick={() => { setRsvpAttending(opt.val); setRsvpError(""); }}
+                      style={{ flex: 1, padding: "12px 8px", fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", border: "1.5px solid", borderRadius: 4, cursor: "pointer", transition: "all .2s", fontFamily: "'Jost', sans-serif", fontWeight: 500,
+                        background: rsvpAttending === opt.val ? opt.ac : "transparent",
+                        color: rsvpAttending === opt.val ? "#fff" : "#7A6E68",
+                        borderColor: rsvpAttending === opt.val ? opt.ac : "#D8CFC4",
+                      }}>{opt.label}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 26 }}>
+                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>A note for the couple <span style={{ color: "#C4B8B0", textTransform: "none", letterSpacing: 0 }}>(optional)</span></p>
+                <textarea value={rsvpNote} onChange={e => setRsvpNote(e.target.value)}
+                  placeholder="Share a message, well wishes, or dietary notes..."
+                  rows={3}
+                  style={{ width: "100%", border: "1.5px solid #E0D8D0", borderRadius: 4, background: "transparent", padding: "10px 14px", fontSize: 13, color: "#2E2520", outline: "none", resize: "vertical", fontFamily: "Georgia, serif", fontStyle: "italic" }} />
+              </div>
+              {rsvpError && <p style={{ fontSize: 12, color: "#C47A7A", marginBottom: 14 }}>{rsvpError}</p>}
+              <button onClick={handleRsvp}
+                style={{ width: "100%", background: "#2E2520", color: "#F7F2EA", border: "none", padding: "15px", fontSize: 9, letterSpacing: 4, textTransform: "uppercase", borderRadius: 4, cursor: "pointer", fontFamily: "'Jost', sans-serif", fontWeight: 500, transition: "background .2s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#C4967A"}
+                onMouseLeave={e => e.currentTarget.style.background = "#2E2520"}>
+                Send My Reply
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ── About Us ── */}
       <div style={{ padding: "80px 24px", maxWidth: 720, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
@@ -685,62 +758,6 @@ function Landing({ onEnter }) {
                 </button>
               )}
             </>
-          )}
-        </div>
-      </div>
-
-      {/* ── RSVP ── */}
-      <div style={{ background: "linear-gradient(135deg, #EDE7D9, #E4DDD2)", padding: "80px 24px" }}>
-        <div style={{ maxWidth: 440, margin: "0 auto", textAlign: "center" }}>
-          <SectionLabel>Kindly Reply</SectionLabel>
-          <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 14 }}>Will You Join Us?</h2>
-          <p style={{ fontSize: 13, color: "#9A8E88", fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.9, marginBottom: 40 }}>
-            Please let us know by July 2026 so we can plan accordingly. We'd love to celebrate with you.
-          </p>
-          {rsvpSent ? (
-            <div style={{ borderRadius: 10, padding: "40px 28px", background: "#fff", border: "1px solid #C4E0D4", boxShadow: "0 4px 20px rgba(46,37,32,.06)", textAlign: "center" }}>
-              <FlowerLogo size={44} color="#7A9E8A" />
-              <p className="sf" style={{ fontSize: 26, color: "#2E2520", margin: "18px 0 8px" }}>Thank you, {rsvpName}!</p>
-              <p style={{ fontSize: 13, color: "#7A9E8A", lineHeight: 1.8 }}>
-                {rsvpAttending ? "We're so excited to celebrate with you!" : "We'll miss you, but we understand. Thank you for letting us know."}
-              </p>
-            </div>
-          ) : (
-            <div style={{ borderRadius: 10, padding: "36px 32px", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", border: "1px solid #EDE7D9", textAlign: "left" }}>
-              <div style={{ marginBottom: 22 }}>
-                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>Your Name</p>
-                <input value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }}
-                  placeholder="Full name"
-                  style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E0D8D0", borderRadius: 0, background: "transparent", padding: "8px 0", fontSize: 15, color: "#2E2520", outline: "none", fontFamily: "'Jost', sans-serif" }} />
-              </div>
-              <div style={{ marginBottom: 22 }}>
-                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 12 }}>Will you be attending?</p>
-                <div style={{ display: "flex", gap: 10 }}>
-                  {[{ label: "Joyfully Accepts", val: true, ac: "#7A9E8A" }, { label: "Regretfully Declines", val: false, ac: "#C47A7A" }].map(opt => (
-                    <button key={String(opt.val)} onClick={() => { setRsvpAttending(opt.val); setRsvpError(""); }}
-                      style={{ flex: 1, padding: "12px 8px", fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", border: "1.5px solid", borderRadius: 4, cursor: "pointer", transition: "all .2s", fontFamily: "'Jost', sans-serif", fontWeight: 500,
-                        background: rsvpAttending === opt.val ? opt.ac : "transparent",
-                        color: rsvpAttending === opt.val ? "#fff" : "#7A6E68",
-                        borderColor: rsvpAttending === opt.val ? opt.ac : "#D8CFC4",
-                      }}>{opt.label}</button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ marginBottom: 26 }}>
-                <p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>A note for the couple <span style={{ color: "#C4B8B0", textTransform: "none", letterSpacing: 0 }}>(optional)</span></p>
-                <textarea value={rsvpNote} onChange={e => setRsvpNote(e.target.value)}
-                  placeholder="Share a message, well wishes, or dietary notes..."
-                  rows={3}
-                  style={{ width: "100%", border: "1.5px solid #E0D8D0", borderRadius: 4, background: "transparent", padding: "10px 14px", fontSize: 13, color: "#2E2520", outline: "none", resize: "vertical", fontFamily: "Georgia, serif", fontStyle: "italic" }} />
-              </div>
-              {rsvpError && <p style={{ fontSize: 12, color: "#C47A7A", marginBottom: 14 }}>{rsvpError}</p>}
-              <button onClick={handleRsvp}
-                style={{ width: "100%", background: "#2E2520", color: "#F7F2EA", border: "none", padding: "15px", fontSize: 9, letterSpacing: 4, textTransform: "uppercase", borderRadius: 4, cursor: "pointer", fontFamily: "'Jost', sans-serif", fontWeight: 500, transition: "background .2s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#C4967A"}
-                onMouseLeave={e => e.currentTarget.style.background = "#2E2520"}>
-                Send My Reply
-              </button>
-            </div>
           )}
         </div>
       </div>
@@ -2056,10 +2073,10 @@ function Dashboard({ onLogout }) {
   // Load from Supabase on mount
   useEffect(() => {
     sbLoad().then(d => {
-      if (d.suppliers) setSuppliers(d.suppliers);
-      if (d.guests)    setGuests(d.guests);
-      if (d.budget)    setBudget(d.budget);
-      if (d.events)    setEvents(d.events);
+      if (d.suppliers?.length) setSuppliers(d.suppliers);
+      if (d.guests?.length)    setGuests(d.guests);
+      if (d.budget)            setBudget(d.budget);
+      if (d.events?.length)    setEvents(d.events);
       if (d.totalBudget !== null) setTotalBudget(d.totalBudget);
       setLoading(false);
       initDone.current = true;
