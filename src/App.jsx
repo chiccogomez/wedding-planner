@@ -1,5 +1,45 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import './App.css';
+import { createClient } from '@supabase/supabase-js';
+
+/* ─── Supabase ────────────────────────────────────────────────────────────── */
+const sb = createClient(
+  "https://ebmwssxsqptnuriituhg.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVibXdzc3hzcXB0bnVyaWl0dWhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMTk0NzcsImV4cCI6MjA4ODc5NTQ3N30.tflIvMyitoti4BqLqBs-5oAq7-lX4mW1oS6Olv7WRMc"
+);
+
+// Load all data from Supabase
+const sbLoad = async () => {
+  const [s, g, b, e, tb] = await Promise.all([
+    sb.from("suppliers").select("*").order("id"),
+    sb.from("guests").select("*").order("id"),
+    sb.from("budget").select("*").eq("id", "main").single(),
+    sb.from("events").select("*").order("id"),
+    sb.from("settings").select("*").eq("key", "totalBudget").single(),
+  ]);
+  return {
+    suppliers: s.data?.map(r => r.data) || null,
+    guests:    g.data?.map(r => r.data) || null,
+    budget:    b.data?.data || null,
+    events:    e.data?.map(r => r.data) || null,
+    totalBudget: tb.data?.value ?? null,
+  };
+};
+
+// Save all data to Supabase
+const sbSave = async (suppliers, guests, budget, events, totalBudget) => {
+  await Promise.all([
+    sb.from("suppliers").upsert(suppliers.map(s => ({ id: s.id, data: s }))),
+    sb.from("guests").upsert(guests.map(g => ({ id: g.id, data: g }))),
+    sb.from("budget").upsert({ id: "main", data: budget }),
+    sb.from("events").upsert(events.map(e => ({ id: e.id, data: e }))),
+    sb.from("settings").upsert({ key: "totalBudget", value: totalBudget }),
+    // Clean up deleted suppliers/guests/events
+    suppliers.length > 0 && sb.from("suppliers").delete().not("id", "in", `(${suppliers.map(s=>s.id).join(",")})`),
+    guests.length > 0 && sb.from("guests").delete().not("id", "in", `(${guests.map(g=>g.id).join(",")})`),
+    events.length > 0 && sb.from("events").delete().not("id", "in", `(${events.map(e=>e.id).join(",")})`),
+  ]);
+};
 
 /* ─── Style injection ─────────────────────────────────────────────────────── */
 const injectStyles = () => {
@@ -381,12 +421,11 @@ function Landing({ onEnter }) {
     if (next >= 5) { setAdminClicks(0); onEnter(); }
   };
 
-  const handleRsvp = () => {
+  const handleRsvp = async () => {
     if (!rsvpName.trim()) { setRsvpError("Please enter your name."); return; }
     if (rsvpAttending === null) { setRsvpError("Please select if you'll be attending."); return; }
-    const rsvps = JSON.parse(localStorage.getItem("cRSVP") || "[]");
-    rsvps.push({ id: Date.now(), name: rsvpName.trim(), attending: rsvpAttending, note: rsvpNote.trim(), submittedAt: new Date().toISOString() });
-    localStorage.setItem("cRSVP", JSON.stringify(rsvps));
+    const entry = { id: Date.now(), name: rsvpName.trim(), attending: rsvpAttending, note: rsvpNote.trim(), submittedAt: new Date().toISOString() };
+    await sb.from("rsvps").insert({ id: entry.id, data: entry });
     setRsvpSent(true);
   };
 
@@ -2011,24 +2050,30 @@ function Dashboard({ onLogout }) {
   const [events, setEvents] = useState(INIT_E);
   const [totalBudget, setTotalBudget] = useState(0);
   const [saved, setSaved] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const initDone = useRef(false);
 
+  // Load from Supabase on mount
   useEffect(() => {
-    const s = store.get("cS"); if (s) setSuppliers(JSON.parse(s));
-    const g = store.get("cG"); if (g) setGuests(JSON.parse(g));
-    const b = store.get("cB"); if (b) setBudget(JSON.parse(b));
-    const e = store.get("cE"); if (e) setEvents(JSON.parse(e));
-    const tb = store.get("cTB"); if (tb) setTotalBudget(JSON.parse(tb));
+    sbLoad().then(d => {
+      if (d.suppliers) setSuppliers(d.suppliers);
+      if (d.guests)    setGuests(d.guests);
+      if (d.budget)    setBudget(d.budget);
+      if (d.events)    setEvents(d.events);
+      if (d.totalBudget !== null) setTotalBudget(d.totalBudget);
+      setLoading(false);
+      initDone.current = true;
+    }).catch(() => { setLoading(false); initDone.current = true; });
   }, []);
 
+  // Save to Supabase on change (debounced, skip initial load)
   useEffect(() => {
+    if (!initDone.current) return;
     setSaved(false);
     const t = setTimeout(() => {
-      store.set("cS", JSON.stringify(suppliers));
-      store.set("cG", JSON.stringify(guests));
-      store.set("cB", JSON.stringify(budget));
-      store.set("cE", JSON.stringify(events));
-      store.set("cTB", JSON.stringify(totalBudget));
-      setSaved(true);
+      sbSave(suppliers, guests, budget, events, totalBudget)
+        .then(() => setSaved(true))
+        .catch(() => setSaved(true));
     }, 700);
     return () => clearTimeout(t);
   }, [suppliers, guests, budget, events, totalBudget]);
@@ -2040,6 +2085,13 @@ function Dashboard({ onLogout }) {
     { id: "budget",    label: "Budget",    icon: "◉" },
     { id: "guests",    label: "Guests",    icon: "◎" },
   ];
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "var(--cr)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+      <FlowerLogo size={48} color="#C4967A" />
+      <p style={{ fontSize: 10, letterSpacing: 4, color: "var(--m)", textTransform: "uppercase" }}>Loading your data…</p>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--cr)", display: "flex" }}>
