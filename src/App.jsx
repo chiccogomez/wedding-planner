@@ -1567,6 +1567,9 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget, suppliers }
   const [sel, setSel] = useState(null);
   const [editingTotal, setEditingTotal] = useState(false);
   const [totalInput, setTotalInput] = useState(totalBudget || "");
+  const [bSortCol, setBSortCol] = useState("category");
+  const [bSortDir, setBSortDir] = useState("asc");
+  const toggleBSort = col => { if (bSortCol === col) setBSortDir(d => d === "asc" ? "desc" : "asc"); else { setBSortCol(col); setBSortDir("asc"); } };
 
   // Compute actual spent per category live from supplier payments
   const spentByCategory = useMemo(() => {
@@ -1638,14 +1641,6 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget, suppliers }
       </Card>
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12 }}>
-        <Btn v="ghost" onClick={() => {
-          if (window.confirm("This will replace all current budget categories with the default list. Actual spent amounts will be kept if the category name matches, otherwise reset to 0. Continue?")) {
-            setBudget(INIT_B.map(b => {
-              const existing = budget.find(x => x.category === b.category);
-              return { ...b, actual: existing?.actual || 0 };
-            }));
-          }
-        }}>↺ Reset to Defaults</Btn>
         <Btn onClick={() => { setForm({ category: "", estimated: "", actual: "" }); setSel(null); setModal(true); }}>+ Add Category</Btn>
       </div>
 
@@ -1653,14 +1648,24 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget, suppliers }
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 560 }}>
           <thead>
             <tr style={{ background: "var(--l)" }}>
-              {["Category", "Allocated", "Spent", "Variance", "Progress", ""].map(h => (
-                <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
+            {[["Category","category"],["Allocated","estimated"],["Spent","spent"],["Variance","variance"],["Progress","pct"],["",""]].map(([label, col]) => (
+                <th key={label} onClick={col ? () => toggleBSort(col) : undefined}
+                  style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500, cursor: col ? "pointer" : "default", userSelect: "none", whiteSpace: "nowrap" }}>
+                  {label}{col && bSortCol === col ? (bSortDir === "asc" ? " ▲" : " ▼") : col ? " ·" : ""}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {budget.map((b, i) => {
-              const spent = spentByCategory[b.category] || 0;
+            {[...budget]
+              .map(b => ({ ...b, spent: spentByCategory[b.category]||0, variance: b.estimated-(spentByCategory[b.category]||0), pct: b.estimated>0?(spentByCategory[b.category]||0)/b.estimated*100:0 }))
+              .sort((a, bx) => {
+                const av = a[bSortCol]??"", bv = bx[bSortCol]??"";
+                const cmp = typeof av==="number" ? av-bv : String(av).localeCompare(String(bv));
+                return bSortDir==="asc" ? cmp : -cmp;
+              })
+              .map((b, i) => {
+              const spent = b.spent;
               const v = b.estimated - spent;
               const pct = b.estimated > 0 ? Math.min(100, (spent / b.estimated) * 100) : 0;
               return (
@@ -1683,7 +1688,7 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget, suppliers }
                   </td>
                 </tr>
               );
-            })}
+            })})
           </tbody>
         </table>
       </Card>
@@ -1720,6 +1725,9 @@ function GuestsTab({ guests, setGuests }) {
   const [bulkResult, setBulkResult] = useState(null);
   const [activeBreakdown, setActiveBreakdown] = useState("rsvp");
   const fileRef = useRef();
+  const [gSortCol, setGSortCol] = useState("name");
+  const [gSortDir, setGSortDir] = useState("asc");
+  const toggleGSort = col => { if (gSortCol === col) setGSortDir(d => d === "asc" ? "desc" : "asc"); else { setGSortCol(col); setGSortDir("asc"); } };
 
   const quickRsvp = (id, rsvp) => setGuests(p => p.map(g => g.id === id ? { ...g, rsvp } : g));
 
@@ -1735,7 +1743,11 @@ function GuestsTab({ guests, setGuests }) {
         if (ta !== tb) return ta.localeCompare(tb, undefined, { numeric: true });
         return a.name.localeCompare(b.name);
       })
-    : filtered;
+    : [...filtered].sort((a, b) => {
+        const av = a[gSortCol]??"", bv = b[gSortCol]??"";
+        const cmp = typeof av==="boolean" ? (av===bv?0:av?-1:1) : typeof av==="number" ? av-bv : String(av).localeCompare(String(bv));
+        return gSortDir==="asc" ? cmp : -cmp;
+      });
 
   const conf = guests.filter(g => g.rsvp === "Confirmed").length;
   const pend = guests.filter(g => g.rsvp === "Pending").length;
@@ -1845,8 +1857,11 @@ function GuestsTab({ guests, setGuests }) {
 
   const tableHead = (
     <tr style={{ background: "var(--l)" }}>
-      {["Name / Role", "Phone", "Group", "RSVP", "Meal", "+1", "Table", ""].map(h => (
-        <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500 }}>{h}</th>
+      {[["Name / Role","name"],["Phone","phone"],["Group","group"],["RSVP","rsvp"],["Meal","meal"],["+1","plusOne"],["Table","table"],["",""]].map(([label, col]) => (
+        <th key={label} onClick={!sortByTable && col ? () => toggleGSort(col) : undefined}
+          style={{ padding: "10px 12px", textAlign: "left", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500, cursor: !sortByTable && col ? "pointer" : "default", userSelect: "none", whiteSpace: "nowrap" }}>
+          {label}{!sortByTable && col && gSortCol === col ? (gSortDir === "asc" ? " ▲" : " ▼") : !sortByTable && col ? " ·" : ""}
+        </th>
       ))}
     </tr>
   );
