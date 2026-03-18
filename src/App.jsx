@@ -1636,7 +1636,7 @@ function BudgetTab({ budget, setBudget, totalBudget, setTotalBudget, suppliers }
                   </td>
                 </tr>
               );
-            })})
+            })}
           </tbody>
         </table>
       </Card>
