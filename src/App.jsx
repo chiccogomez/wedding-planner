@@ -2049,7 +2049,7 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
                 )}
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 9, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase" }}>Subtotal</div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{peso((s.hasOOT ? s.ootFee || 0 : 0) + (s.hasCrew ? num(s.crewMeals) : 0))}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{peso((s.hasOOT ? num(s.ootFee) : 0) + (s.hasCrew ? num(s.crewMeals) : 0))}</div>
                 </div>
               </div>
             </div>
@@ -2060,7 +2060,7 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
           <div style={{ borderTop: "1px solid var(--l)", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600 }}>
             <span>Combined Total</span>
             <span style={{ color: "var(--r)" }}>
-              {peso(suppliers.reduce((a, s) => a + (s.hasOOT ? s.ootFee || 0 : 0) + (s.hasCrew ? s.crewMeals || 0 : 0), 0))}
+              {peso(suppliers.reduce((a, s) => a + (s.hasOOT ? num(s.ootFee) : 0) + (s.hasCrew ? num(s.crewMeals) : 0), 0))}
             </span>
           </div>
         </Card>
