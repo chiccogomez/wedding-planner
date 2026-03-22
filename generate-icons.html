@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate Icons</title></head>
+<body>
+<p style="font-family:sans-serif;padding:20px">Generating icons... check Downloads.</p>
+<canvas id="c"></canvas>
+<script>
+function makeIcon(size) {
+  const c = document.getElementById('c');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#1A1612';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, size * 0.18);
+  ctx.fill();
+
+  // Gold diamond
+  const cx = size / 2, cy = size * 0.42, r = size * 0.1;
+  ctx.fillStyle = '#C8A96E';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
+  ctx.lineTo(cx - r, cy);
+  ctx.closePath();
+  ctx.fill();
+
+  // "C & M" text
+  ctx.fillStyle = '#F5F0E8';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `300 ${size * 0.15}px Georgia, serif`;
+  ctx.fillText('C & M', cx, size * 0.7);
+
+  // Thin gold line
+  ctx.strokeStyle = '#C8A96E';
+  ctx.lineWidth = size * 0.008;
+  ctx.beginPath();
+  ctx.moveTo(size * 0.25, size * 0.6);
+  ctx.lineTo(size * 0.75, size * 0.6);
+  ctx.stroke();
+
+  return c.toDataURL('image/png');
+}
+
+[192, 512].forEach(size => {
+  const data = makeIcon(size);
+  const a = document.createElement('a');
+  a.href = data;
+  a.download = `icon-${size}.png`;
+  a.click();
+});
+document.body.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:green">✓ Icons downloaded! Place icon-192.png and icon-512.png alongside index.html before deploying to Netlify.</p>';
+</script>
+</body>
+</html>
