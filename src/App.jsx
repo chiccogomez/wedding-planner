@@ -2011,6 +2011,59 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
               </div>
             ))}
         </Card>
+        <Card style={{ marginTop: 14 }}>
+          <h3 className="sf" style={{ fontSize: 19, fontWeight: 400, marginBottom: 14 }}>OOT & Crew Meals Tracker</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, textAlign: "center" }}>
+              <div style={{ fontSize: 10, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Total OOT Fees</div>
+              <div className="sf" style={{ fontSize: 26, color: "var(--b)", fontWeight: 300 }}>
+                {peso(suppliers.filter(s => s.hasOOT).reduce((a, s) => a + (s.ootFee || 0), 0))}
+              </div>
+            </div>
+            <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, textAlign: "center" }}>
+              <div style={{ fontSize: 10, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Total Crew Meals</div>
+              <div className="sf" style={{ fontSize: 26, color: "var(--g)", fontWeight: 300 }}>
+                {peso(suppliers.filter(s => s.hasCrew).reduce((a, s) => a + (s.crewMeals || 0), 0))}
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 10, color: "var(--m)", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10, fontWeight: 500 }}>Breakdown by Supplier</div>
+          {suppliers.filter(s => s.hasOOT || s.hasCrew).map(s => (
+            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 10px", background: "var(--cr)", borderRadius: 6, marginBottom: 6 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{s.name}</div>
+                <div style={{ fontSize: 11, color: "var(--m)" }}>{s.category}</div>
+              </div>
+              <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                {s.hasOOT && (
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 9, color: "var(--b)", letterSpacing: 1, textTransform: "uppercase" }}>OOT</div>
+                    <div style={{ fontSize: 13, color: "var(--b)", fontWeight: 500 }}>{peso(s.ootFee)}</div>
+                  </div>
+                )}
+                {s.hasCrew && (
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 9, color: "var(--g)", letterSpacing: 1, textTransform: "uppercase" }}>Meals</div>
+                    <div style={{ fontSize: 13, color: "var(--g)", fontWeight: 500 }}>{peso(s.crewMeals)}</div>
+                  </div>
+                )}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 9, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase" }}>Subtotal</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{peso((s.hasOOT ? s.ootFee || 0 : 0) + (s.hasCrew ? s.crewMeals || 0 : 0))}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {suppliers.filter(s => s.hasOOT || s.hasCrew).length === 0 && (
+            <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 12 }}>No OOT or crew meal costs logged yet.</p>
+          )}
+          <div style={{ borderTop: "1px solid var(--l)", marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600 }}>
+            <span>Combined Total</span>
+            <span style={{ color: "var(--r)" }}>
+              {peso(suppliers.reduce((a, s) => a + (s.hasOOT ? s.ootFee || 0 : 0) + (s.hasCrew ? s.crewMeals || 0 : 0), 0))}
+            </span>
+          </div>
+        </Card>
       </div>
     </div>
   );
