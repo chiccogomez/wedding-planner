@@ -2011,7 +2011,7 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
               </div>
             ))}
         </Card>
-        <Card style={{ marginTop: 14 }}>
+        <Card style={{ marginTop: 0, gridColumn: "1/-1" }}>
           <h3 className="sf" style={{ fontSize: 19, fontWeight: 400, marginBottom: 14 }}>OOT & Crew Meals Tracker</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
             <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, textAlign: "center" }}>
