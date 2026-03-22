@@ -2017,13 +2017,13 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
             <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, textAlign: "center" }}>
               <div style={{ fontSize: 10, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Total OOT Fees</div>
               <div className="sf" style={{ fontSize: 26, color: "var(--b)", fontWeight: 300 }}>
-                {peso(suppliers.filter(s => s.hasOOT).reduce((a, s) => a + (s.ootFee || 0), 0))}
+                {peso(suppliers.filter(s => s.hasOOT).reduce((a, s) => a + num(s.ootFee || 0), 0))}
               </div>
             </div>
             <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, textAlign: "center" }}>
               <div style={{ fontSize: 10, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>Total Crew Meals</div>
               <div className="sf" style={{ fontSize: 26, color: "var(--g)", fontWeight: 300 }}>
-                {peso(suppliers.filter(s => s.hasCrew).reduce((a, s) => a + (s.crewMeals || 0), 0))}
+                {peso(suppliers.filter(s => s.hasCrew).reduce((a, s) => a + num(s.crewMeals || 0), 0))}
               </div>
             </div>
           </div>
@@ -2049,7 +2049,7 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
                 )}
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 9, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase" }}>Subtotal</div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{peso((s.hasOOT ? s.ootFee || 0 : 0) + (s.hasCrew ? s.crewMeals || 0 : 0))}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{peso((s.hasOOT ? s.ootFee || 0 : 0) + (s.hasCrew ? num(s.crewMeals) : 0))}</div>
                 </div>
               </div>
             </div>
