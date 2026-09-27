@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import './App.css';
 import { createClient } from '@supabase/supabase-js';
+import * as XLSX from 'xlsx';
 
 const sb = createClient(
   "https://ebmwssxsqptnuriituhg.supabase.co",
@@ -16,18 +17,20 @@ const sbLoad = () => Promise.race([
       sb.from("events").select("*").order("id"),
       sb.from("settings").select("*").eq("key", "totalBudget").single(),
     ]);
+    const li = await sb.from("settings").select("*").eq("key", "lastImport").maybeSingle();
     return {
       suppliers:   s.data?.map(r => r.data) || null,
       guests:      g.data?.map(r => r.data) || null,
       budget:      b.data?.data || null,
       events:      e.data?.map(r => r.data) || null,
       totalBudget: tb.data?.value ?? null,
+      lastImport:  li.data?.value ?? null,
     };
   })(),
   new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 10000)),
 ]);
 
-const sbSave = async (suppliers, guests, budget, events, totalBudget) => {
+const sbSave = async (suppliers, guests, budget, events, totalBudget, lastImport) => {
   const cleanup = (table, ids) =>
     ids.length > 0
       ? sb.from(table).delete().not("id", "in", `(${ids.join(",")})`)
@@ -38,6 +41,7 @@ const sbSave = async (suppliers, guests, budget, events, totalBudget) => {
     sb.from("budget").upsert({ id: "main", data: budget.map(({ actual, ...rest }) => rest) }),
     sb.from("events").upsert(events.map(e => ({ id: e.id, data: e }))),
     sb.from("settings").upsert({ key: "totalBudget", value: totalBudget }),
+    sb.from("settings").upsert({ key: "lastImport", value: lastImport || 0 }),
     cleanup("suppliers", suppliers.map(s => s.id)),
     cleanup("guests",    guests.map(g => g.id)),
     cleanup("events",    events.map(e => e.id)),
@@ -98,8 +102,10 @@ const EC = {"Payment Due":"#C47A7A","Meeting":"#7A9EAD","Milestone":"#B8976A","F
 const SC = {"Unpaid":"#C47A7A","Partial":"#C4A87A","Fully Paid":"#7A9E8A"};
 const RC = {"Pending":"#C4A87A","Confirmed":"#7A9E8A","Declined":"#C47A7A"};
 
+// If misc costs (crew meals / OOT) are already inside the contract price, they are tracked but not added again.
 const computeSupplierTotal = (f) => {
   const base = num(f.baseAmount);
+  if (f.inContract) return base;
   const crew = f.hasCrew ? num(f.crewMeals) : 0;
   const oot  = f.hasOOT  ? num(f.ootFee)    : 0;
   return base + crew + oot;
@@ -177,6 +183,136 @@ const parseCSV = (text) => {
     headers.forEach((h, i) => { obj[h] = (vals[i] || "").replace(/^"|"$/g, ""); });
     return obj;
   });
+};
+
+
+/* ─── Excel import (Wedding Budget Planner.xlsx is the source of truth) ───── */
+const xlDate = v => {
+  if (!v) return "";
+  if (v instanceof Date) return `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,"0")}-${String(v.getDate()).padStart(2,"0")}`;
+  if (typeof v === "number") { const d = XLSX.SSF.parse_date_code(v); return d ? `${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}` : ""; }
+  const s = String(v).trim(); const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[0];
+  const d = new Date(s); return isNaN(d) ? "" : xlDate(d);
+};
+const clean = v => (v == null ? "" : String(v).trim());
+const rowsOf = (wb, name) => { const ws = wb.Sheets[name]; return ws ? XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true }) : null; };
+const findHeader = (rows, mustHave) => rows.findIndex(r => r && r.some(c => clean(c).toLowerCase() === mustHave.toLowerCase()));
+const colIdx = (hdr, label) => hdr.findIndex(c => clean(c).toLowerCase().startsWith(label.toLowerCase()));
+
+const importFromExcel = (wb, prev) => {
+  const errors = [];
+
+  /* ── PaymentSchedule → suppliers + payment-due events ── */
+  const ps = rowsOf(wb, "PaymentSchedule");
+  if (!ps) throw new Error("Sheet 'PaymentSchedule' not found");
+  const h = findHeader(ps, "Vendor Name");
+  if (h < 0) throw new Error("PaymentSchedule: header row with 'Vendor Name' not found");
+  const H = ps[h];
+  const cV = colIdx(H, "Vendor Name"), cC = colIdx(H, "Category"), cD = colIdx(H, "Due Date"), cA = colIdx(H, "Amount"),
+        cS = colIdx(H, "Status"), cT = colIdx(H, "Payment Type"), cM = colIdx(H, "Payment Method"), cP = colIdx(H, "Date Paid"), cN = colIdx(H, "Notes");
+
+  const groups = {};
+  ps.slice(h + 1).forEach((r, i) => {
+    if (!r) return;
+    const vendor = clean(r[cV]); if (!vendor) return;
+    const category = clean(r[cC]) || "Others";
+    const amount = num(r[cA]); if (!amount) { errors.push(`Row ${h + i + 2}: ${vendor} has no amount — skipped`); return; }
+    const key = `${vendor.toLowerCase()}||${category.toLowerCase()}`;
+    if (!groups[key]) groups[key] = { vendor, category, rows: [] };
+    groups[key].rows.push({
+      dueDate: xlDate(r[cD]), amount,
+      paid: clean(r[cS]).toLowerCase() === "paid",
+      type: clean(r[cT]), mode: clean(r[cM]), datePaid: xlDate(r[cP]), notes: clean(r[cN]),
+    });
+  });
+
+  /* ── VendorList → misc costs (crew meals, OOT, in-contract flag) + optional contacts ── */
+  const vendorInfo = {};
+  const vl = rowsOf(wb, "VendorList");
+  if (vl) {
+    const vh = findHeader(vl, "Vendor Name");
+    if (vh >= 0) {
+      const VH = vl[vh];
+      const vN = colIdx(VH, "Vendor Name"), vC = colIdx(VH, "Category"),
+            vPax = colIdx(VH, "Crew Pax"), vRate = colIdx(VH, "Meal Rate"), vMeals = colIdx(VH, "Crew Meals"),
+            vOOT = colIdx(VH, "OOT"), vIn = colIdx(VH, "In Contract"), vNotes = colIdx(VH, "Notes"),
+            vP = colIdx(VH, "Contact Person"), vPh = colIdx(VH, "Phone"), vE = colIdx(VH, "Email");
+      vl.slice(vh + 1).forEach(r => {
+        const n = clean(r?.[vN]).toLowerCase(); if (!n) return;
+        const cat = vC >= 0 ? clean(r[vC]).toLowerCase() : "";
+        const pax = vPax >= 0 ? num(r[vPax]) : 0, rate = vRate >= 0 ? num(r[vRate]) : 0;
+        const meals = vMeals >= 0 && num(r[vMeals]) ? num(r[vMeals]) : pax * rate;
+        const info = {
+          crewPax: pax, mealRate: rate, crewMeals: meals,
+          ootFee: vOOT >= 0 ? num(r[vOOT]) : 0,
+          inContract: vIn >= 0 ? /^y/i.test(clean(r[vIn])) : false,
+          vendorNotes: vNotes >= 0 ? clean(r[vNotes]) : "",
+          contactName: vP >= 0 ? clean(r[vP]) : "", contactPhone: vPh >= 0 ? clean(r[vPh]) : "", contactEmail: vE >= 0 ? clean(r[vE]) : "",
+        };
+        vendorInfo[`${n}||${cat}`] = vendorInfo[`${n}||${cat}`] || info;
+        vendorInfo[n] = vendorInfo[n] || info;
+      });
+    }
+  }
+
+  const prevByKey = {};
+  (prev.suppliers || []).forEach(s => { prevByKey[`${s.name.toLowerCase()}||${(s.category || "").toLowerCase()}`] = s; if (!prevByKey[s.name.toLowerCase()]) prevByKey[s.name.toLowerCase()] = s; });
+
+  const suppliers = []; const payEvents = []; let idBase = Date.now();
+  Object.values(groups).forEach(g => {
+    g.rows.sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"));
+    const old = prevByKey[`${g.vendor.toLowerCase()}||${g.category.toLowerCase()}`] || prevByKey[g.vendor.toLowerCase()] || {};
+    const base = g.rows.reduce((a, r) => a + r.amount, 0);
+    const paidRows = g.rows.filter(r => r.paid);
+    const paid = paidRows.reduce((a, r) => a + r.amount, 0);
+    const payments = paidRows.map(r => ({ date: r.datePaid || r.dueDate, amount: r.amount, note: [r.type, r.notes].filter(Boolean).join(" — "), mode: r.mode || "" }));
+    const pending = g.rows.filter(r => !r.paid);
+    const dp = g.rows.find(r => /deposit|dp|reservation/i.test(r.type));
+    const vi = vendorInfo[`${g.vendor.toLowerCase()}||${g.category.toLowerCase()}`] || vendorInfo[g.vendor.toLowerCase()] || {};
+    const s = {
+      id: old.id || idBase++,
+      name: g.vendor, category: g.category, baseAmount: base,
+      hasDP: !!dp, dpAmount: dp ? dp.amount : "", dpDueDate: dp ? dp.dueDate : "", dpPaidDate: dp?.paid ? (dp.datePaid || dp.dueDate) : "",
+      crewPax: vi.crewPax || 0, mealRate: vi.mealRate || 0,
+      hasCrew: (vi.crewMeals || 0) > 0, crewMeals: vi.crewMeals || 0,
+      hasOOT: (vi.ootFee || 0) > 0, ootFee: vi.ootFee || 0,
+      inContract: !!vi.inContract,
+      dueDate: pending.length ? pending[pending.length - 1].dueDate : (g.rows[g.rows.length - 1]?.dueDate || ""),
+      notes: vi.vendorNotes || old.notes || "", payments, attachments: old.attachments || [],
+      contactName: vi.contactName || old.contactName || "",
+      contactPhone: vi.contactPhone || old.contactPhone || "",
+      contactEmail: vi.contactEmail || old.contactEmail || "",
+    };
+    s.total = computeSupplierTotal(s); s.paid = paid;
+    s.status = paid === 0 ? "Unpaid" : paid >= s.total ? "Fully Paid" : "Partial";
+    suppliers.push(s);
+    pending.forEach(r => { if (r.dueDate) payEvents.push({ id: idBase++, title: `${g.vendor} – ${r.type || "Payment"}`, date: r.dueDate, type: "Payment Due", amount: r.amount, notes: r.mode ? `${peso(r.amount)} (${r.mode})` : peso(r.amount) }); });
+  });
+  suppliers.sort((a, b) => a.name.localeCompare(b.name));
+
+  /* ── BudgetSetup → categories + total cap ── */
+  let budget = prev.budget, totalBudget = prev.totalBudget;
+  const bs = rowsOf(wb, "BudgetSetup");
+  if (bs) {
+    const tRow = bs.find(r => r && r.some(c => /total wedding budget/i.test(clean(c))));
+    if (tRow) { const n = tRow.find(c => typeof c === "number"); if (n) totalBudget = n; }
+    const bh = findHeader(bs, "Category");
+    if (bh >= 0) {
+      const BH = bs[bh]; const bC = colIdx(BH, "Category"), bA = colIdx(BH, "Budget Amount");
+      const prevBudget = {}; (prev.budget || []).forEach(b => prevBudget[b.category.toLowerCase()] = b);
+      const cats = [];
+      for (let i = bh + 1; i < bs.length; i++) {
+        const r = bs[i]; if (!r) continue;
+        const c = clean(r[bC]); if (!c) continue;
+        if (/^total|^unallocated|^note/i.test(c)) break;
+        cats.push({ id: prevBudget[c.toLowerCase()]?.id || idBase++, category: c, estimated: num(r[bA]) });
+      }
+      if (cats.length) budget = cats;
+    }
+  }
+
+  const events = [...(prev.events || []).filter(e => e.type !== "Payment Due"), ...payEvents];
+  return { suppliers, budget, events, totalBudget, errors, summary: `${suppliers.length} suppliers · ${suppliers.filter(s => s.hasCrew || s.hasOOT).length} with crew/OOT · ${budget.length} budget categories · ${payEvents.length} payment-due events` };
 };
 
 const Btn = ({ children, onClick, v = "primary", style: sx = {} }) => {
@@ -511,7 +647,7 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
       </div>
       {budgeted > 0 && <div className="budget-hint">Allocated for <strong>{budgetRow.category}</strong>: {peso(budgeted)}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Field label="Base Amount (₱)" required><input type="number" value={form.baseAmount || ""} onChange={e => setForm(p => ({ ...p, baseAmount: e.target.value }))} /></Field>
+        <Field label="Base Amount (₱) — from Excel" required><input type="number" value={form.baseAmount || ""} onChange={e => setForm(p => ({ ...p, baseAmount: e.target.value }))} /></Field>
         <Field label="Final Due Date"><input type="date" value={form.dueDate || ""} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} /></Field>
       </div>
       <div style={{ marginBottom: 14 }}><label className="toggle-box" onClick={() => setForm(p => ({ ...p, hasDP: !p.hasDP }))}><input type="checkbox" checked={!!form.hasDP} onChange={() => {}} style={{ accentColor: "var(--r)" }} /><span>Has Downpayment / Deposit</span></label></div>
@@ -520,6 +656,14 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
       {form.hasCrew && <div style={{ marginBottom: 14, paddingLeft: 4 }}><Field label="Crew Meals (₱)"><input type="number" value={form.crewMeals || ""} onChange={e => setForm(p => ({ ...p, crewMeals: e.target.value }))} placeholder="0" /></Field></div>}
       <div style={{ marginBottom: 8 }}><label className="toggle-box" onClick={() => setForm(p => ({ ...p, hasOOT: !p.hasOOT }))}><input type="checkbox" checked={!!form.hasOOT} onChange={() => {}} style={{ accentColor: "var(--b)" }} /><span>Includes Out-of-Town Fee</span></label></div>
       {form.hasOOT && <div style={{ marginBottom: 14, paddingLeft: 4 }}><Field label="Out-of-Town Fee (₱)"><input type="number" value={form.ootFee || ""} onChange={e => setForm(p => ({ ...p, ootFee: e.target.value }))} placeholder="0" /></Field></div>}
+      {(form.hasCrew || form.hasOOT) && (
+        <div style={{ marginBottom: 14 }}>
+          <label className="toggle-box" onClick={() => setForm(p => ({ ...p, inContract: !p.inContract }))} style={{ background: form.inContract ? "rgba(122,158,138,.12)" : "rgba(196,168,122,.15)" }}>
+            <input type="checkbox" checked={!!form.inContract} onChange={() => {}} style={{ accentColor: "var(--su)" }} />
+            <span>{form.inContract ? "Crew / OOT already inside the contract price (tracked, not added)" : "Crew / OOT are on top of the contract (added to total)"}</span>
+          </label>
+        </div>
+      )}
       <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
         <div style={{ fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontWeight: 500 }}>Contract Summary</div>
         <div style={{ borderTop: "1px solid #D8D0C4", paddingTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, textAlign: "center" }}>
@@ -535,12 +679,33 @@ function SupplierForm({ form, setForm, budget, onSave, onCancel }) {
 }
 
 
-function SuppliersTab({ suppliers, setSuppliers, budget }) {
+function SuppliersTab({ suppliers, setSuppliers, budget, setBudget, events, setEvents, totalBudget, setTotalBudget, lastImport, setLastImport }) {
+  const xlsRef = useRef();
+  const [importing, setImporting] = useState(false);
+  const handleExcelFile = e => {
+    const file = e.target.files[0]; if (!file) return;
+    setImporting(true);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: "array", cellDates: true });
+        const res = importFromExcel(wb, { suppliers, budget, events, totalBudget });
+        const warn = res.errors.length ? `\n\nWarnings:\n${res.errors.join("\n")}` : "";
+        if (!window.confirm(`Import from Excel?\n\n${res.summary}\n\nThis replaces suppliers, payments, crew meals, OOT fees, budget categories and payment-due events. Guests, attachments and non-payment events are kept.${warn}`)) { setImporting(false); return; }
+        setSuppliers(res.suppliers); setBudget(res.budget); setEvents(res.events); setTotalBudget(res.totalBudget);
+        setLastImport(Date.now());
+        setBulkResult(`Imported from Excel — ${res.summary}`);
+      } catch (err) {
+        alert(`Import failed: ${err.message}`);
+      }
+      setImporting(false);
+      e.target.value = "";
+    };
+    reader.readAsArrayBuffer(file);
+  };
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
-  const [pf, setPf] = useState({ date: todayISO(), amount: "", note: "", mode: "Bank Transfer" });
-  const [editPayIdx, setEditPayIdx] = useState(null);
   const [sortCol, setSortCol] = useState("name");
   const [sortDir, setSortDir] = useState("asc");
   const [q, setQ] = useState("");
@@ -548,9 +713,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
   const [bulkResult, setBulkResult] = useState(null);
   const [showPayCats, setShowPayCats] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const fileRef = useRef();
   const attachRef = useRef();
-  const PAYMENT_MODES = ["Cash", "Bank Transfer", "GCash", "Maya", "Check", "Other"];
   const ATTACH_TYPES = ["Contract", "Draft", "Receipt", "QR"];
 
   const toggleSort = (col) => { if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc"); else { setSortCol(col); setSortDir("asc"); } };
@@ -580,16 +743,6 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
     setModal(null);
   };
 
-  const recomputeSupplier = (s, newPayments) => { const pd = newPayments.reduce((a, x) => a + num(x.amount), 0); return { ...s, payments: newPayments, paid: pd, status: pd === 0 ? "Unpaid" : pd >= s.total ? "Fully Paid" : "Partial" }; };
-
-  const logPay = () => {
-    if (!pf.amount) return;
-    const p = { date: pf.date, amount: num(pf.amount), note: pf.note, mode: pf.mode };
-    setSuppliers(prev => prev.map(s => { if (s.id !== sel.id) return s; let ps; if (editPayIdx !== null) { ps = s.payments.map((x, i) => i === editPayIdx ? p : x); } else { ps = [...(s.payments || []), p]; } return recomputeSupplier(s, ps); }));
-    setEditPayIdx(null); setPf({ date: todayISO(), amount: "", note: "", mode: "Bank Transfer" }); setModal("view");
-  };
-
-  const delPayment = (payIdx) => { if (!window.confirm("Delete this payment?")) return; setSuppliers(prev => prev.map(s => { if (s.id !== sel.id) return s; const ps = s.payments.filter((_, i) => i !== payIdx); return recomputeSupplier(s, ps); })); };
   const del = id => { if (window.confirm("Delete supplier?")) setSuppliers(p => p.filter(s => s.id !== id)); };
 
   const addAttachment = (supplierId, file) => {
@@ -597,29 +750,6 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
     const reader = new FileReader();
     reader.onload = ev => { const att = { id: Date.now(), name: file.name, type: "Contract", dataUrl: ev.target.result, mimeType: file.type, size: file.size }; setSuppliers(prev => prev.map(s => s.id !== supplierId ? s : { ...s, attachments: [...(s.attachments || []), att] })); };
     reader.readAsDataURL(file);
-  };
-
-  const downloadTemplate = () => { downloadCSV("suppliers_template.csv", ["name","category","baseAmount","hasDP","dpAmount","dpDueDate","dpPaidDate","hasCrew","crewMeals","hasOOT","ootFee","dueDate","notes"], [["Antonio's Restaurant","Venue","250000","TRUE","50000","2025-12-01","2025-11-15","FALSE","0","FALSE","0","2026-10-01","Cocktail + Main Dining"]]); };
-
-  const handleBulkFile = e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const rows = parseCSV(ev.target.result); const base = Date.now(); const added = [];
-      rows.forEach((r, idx) => {
-        if (!r.name) return;
-        const hasCrew = (r.hascrew || r.hasCrew || "").toLowerCase() === "true";
-        const hasOOT = (r.hasoot || r.hasOOT || "").toLowerCase() === "true";
-        const f = { id: base + idx, name: r.name, category: r.category || "Other", baseAmount: num(r.baseamount || r.baseAmount), hasDP: (r.hasdp || r.hasDP || "").toLowerCase() === "true", dpAmount: num(r.dpamount || r.dpAmount), dpDueDate: r.dpduedate || r.dpDueDate || "", dpPaidDate: r.dppaiddate || r.dpPaidDate || "", hasCrew, crewMeals: hasCrew ? num(r.crewmeals || r.crewMeals) : 0, hasOOT, ootFee: hasOOT ? num(r.ootfee || r.ootFee) : 0, dueDate: r.duedate || r.dueDate || "", notes: r.notes || "", payments: [] };
-        f.total = computeSupplierTotal(f);
-        if (f.hasDP && f.dpPaidDate && f.dpAmount) f.payments.push({ date: f.dpPaidDate, amount: f.dpAmount, note: "Downpayment" });
-        f.paid = f.payments.reduce((a, p) => a + num(p.amount), 0);
-        f.status = f.paid === 0 ? "Unpaid" : f.paid >= f.total ? "Fully Paid" : "Partial";
-        added.push(f);
-      });
-      setSuppliers(p => [...p, ...added]); setBulkResult(`${added.length} supplier(s) imported.`); e.target.value = "";
-    };
-    reader.readAsText(file);
   };
 
   return (
@@ -651,10 +781,13 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <input placeholder="Search…" value={q} onChange={e => setQ(e.target.value)} style={{ flex: 1, minWidth: 130 }} />
         <select value={cat} onChange={e => setCat(e.target.value)} style={{ minWidth: 130 }}><option value="All">All Categories</option>{budget.map(b => <option key={b.category}>{b.category}</option>)}</select>
-        <Btn onClick={() => { setForm(blankForm()); setSel(null); setModal("form"); }}>+ Add</Btn>
-        <Btn v="ghost" onClick={downloadTemplate}>↓ Template</Btn>
-        <Btn v="secondary" onClick={() => fileRef.current.click()}>↑ Bulk</Btn>
-        <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={handleBulkFile} />
+        <Btn onClick={() => xlsRef.current.click()} style={{ background: "var(--ink)" }}>{importing ? "Importing…" : "⇅ Import Excel"}</Btn>
+        <input ref={xlsRef} type="file" accept=".xlsx,.xlsm" style={{ display: "none" }} onChange={handleExcelFile} />
+        <Btn v="ghost" onClick={() => { setForm(blankForm()); setSel(null); setModal("form"); }}>+ Add</Btn>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--m)", marginBottom: 12, padding: "8px 12px", background: "var(--l)", borderRadius: 6 }}>
+        <strong style={{ color: "var(--ink)" }}>Excel is the source of truth.</strong> Log payments in <em>Wedding Budget Planner.xlsx</em> (PaymentSchedule tab) and crew/OOT in VendorList, then Import Excel here.
+        {lastImport ? ` Last import: ${new Date(lastImport).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}.` : " Not yet imported."}
       </div>
       {bulkResult && <div style={{ fontSize: 12, color: "var(--su)", marginBottom: 10, padding: "8px 12px", background: "rgba(122,158,138,.1)", borderRadius: 6 }}>{bulkResult} <button onClick={() => setBulkResult(null)} style={{ background: "none", border: "none", color: "var(--m)", cursor: "pointer", marginLeft: 8 }}>×</button></div>}
       <Card style={{ padding: 0, overflow: "auto" }}>
@@ -680,7 +813,6 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
                 <td style={{ padding: "11px 12px" }}>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     <Btn onClick={() => { setSel(s); setModal("view"); }} v="ghost">View{s.attachments?.length ? ` (${s.attachments.length})` : ""}</Btn>
-                    <Btn onClick={() => { setSel(s); setEditPayIdx(null); setPf({ date: todayISO(), amount: "", note: "", mode: "Bank Transfer" }); setModal("pay"); }} v="success">+Pay</Btn>
                     <Btn onClick={() => { setForm({ ...s }); setSel(s); setModal("form"); }} v="secondary">Edit</Btn>
                     <Btn onClick={() => del(s.id)} v="danger">Del</Btn>
                   </div>
@@ -692,25 +824,18 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
         </table>
       </Card>
       {modal === "form" && (<Modal title={sel ? "Edit Supplier" : "Add Supplier"} onClose={() => setModal(null)} wide><SupplierForm form={form} setForm={setForm} budget={budget} onSave={save} onCancel={() => setModal(null)} /></Modal>)}
-      {modal === "pay" && sel && (
-        <Modal title={editPayIdx !== null ? `Edit Payment — ${sel.name}` : `Log Payment — ${sel.name}`} onClose={() => { setModal("view"); setEditPayIdx(null); }}>
-          <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 13 }}>
-            {[["Contract", sel.total, "var(--ink)"], ["Paid", sel.paid, "var(--su)"], ["Remaining", sel.total - (sel.paid || 0), "var(--r)"]].map(([l, v, c]) => (<div key={l} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "var(--m)" }}>{l}</span><strong style={{ color: c }}>{peso(v)}</strong></div>))}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Date"><input type="date" value={pf.date} onChange={e => setPf(f => ({ ...f, date: e.target.value }))} /></Field>
-            <Field label="Amount (₱)"><input type="number" value={pf.amount} onChange={e => setPf(f => ({ ...f, amount: e.target.value }))} placeholder="0" /></Field>
-            <Field label="Mode of Payment"><select value={pf.mode || "Bank Transfer"} onChange={e => setPf(f => ({ ...f, mode: e.target.value }))}>{PAYMENT_MODES.map(m => <option key={m}>{m}</option>)}</select></Field>
-            <Field label="Note"><input value={pf.note} onChange={e => setPf(f => ({ ...f, note: e.target.value }))} placeholder="e.g. 2nd tranche" /></Field>
-          </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><Btn v="ghost" onClick={() => { setModal("view"); setEditPayIdx(null); }}>Cancel</Btn><Btn v="success" onClick={logPay}>{editPayIdx !== null ? "Save Changes" : "Log Payment"}</Btn></div>
-        </Modal>
-      )}
       {modal === "view" && sel && (() => {
         const liveSel = suppliers.find(s => s.id === sel.id) || sel;
         return (
           <Modal title={liveSel.name} onClose={() => setModal(null)} wide>
             <div style={{ background: "var(--l)", borderRadius: 8, padding: 14, marginBottom: 14 }}>
+              {(liveSel.hasCrew || liveSel.hasOOT) && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10, fontSize: 12 }}>
+                  {liveSel.hasCrew && <span>Crew meals <strong style={{ color: "var(--g)" }}>{peso(liveSel.crewMeals)}</strong>{liveSel.crewPax ? <span style={{ color: "var(--m)" }}> ({liveSel.crewPax} × {peso(liveSel.mealRate)})</span> : null}</span>}
+                  {liveSel.hasOOT && <span>OOT <strong style={{ color: "var(--b)" }}>{peso(liveSel.ootFee)}</strong></span>}
+                  <Badge label={liveSel.inContract ? "Inside contract price" : "On top of contract"} color={liveSel.inContract ? "var(--su)" : "var(--r)"} />
+                </div>
+              )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, textAlign: "center", borderTop: "1px solid #D8D0C4", paddingTop: 10 }}>
                 <div><div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Total Contract</div><div style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>{peso(liveSel.total)}</div></div>
                 <div><div style={{ fontSize: 9, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>Total Paid</div><div style={{ fontSize: 16, fontWeight: 700, color: "var(--su)" }}>{peso(liveSel.paid || 0)}</div></div>
@@ -724,12 +849,12 @@ function SuppliersTab({ suppliers, setSuppliers, budget }) {
             {liveSel.notes && <p style={{ fontSize: 13, color: "var(--m)", background: "var(--l)", padding: 10, borderRadius: 6, marginBottom: 14 }}>{liveSel.notes}</p>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <h4 style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)" }}>Payment History</h4>
-              <Btn v="success" onClick={() => { setEditPayIdx(null); setPf({ date: todayISO(), amount: "", note: "" }); setModal("pay"); }}>+ Log Payment</Btn>
+              <span style={{ fontSize: 10, color: "var(--m)" }}>from Excel</span>
             </div>
             {!(liveSel.payments?.length) ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 12 }}>No payments logged yet.</p> : (
               <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-                <thead><tr style={{ background: "var(--l)" }}>{["Date","Amount","Mode","Note",""].map(h => <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>)}</tr></thead>
-                <tbody>{liveSel.payments.map((p, i) => (<tr key={i} style={{ borderTop: "1px solid var(--l)" }}><td style={{ padding: "8px 10px" }}>{p.date}</td><td style={{ padding: "8px 10px", color: "var(--su)", fontWeight: 600 }}>{peso(p.amount)}</td><td style={{ padding: "8px 10px" }}>{p.mode ? <Badge label={p.mode} color="var(--b)" /> : "—"}</td><td style={{ padding: "8px 10px", color: "var(--m)" }}>{p.note || "—"}</td><td style={{ padding: "8px 10px" }}><div style={{ display: "flex", gap: 4 }}><Btn v="secondary" onClick={() => { setEditPayIdx(i); setPf({ date: p.date, amount: p.amount, note: p.note || "", mode: p.mode || "Bank Transfer" }); setModal("pay"); }}>Edit</Btn><Btn v="danger" onClick={() => delPayment(i)}>Del</Btn></div></td></tr>))}</tbody>
+                <thead><tr style={{ background: "var(--l)" }}>{["Date","Amount","Mode","Note"].map(h => <th key={h} style={{ padding: "7px 10px", textAlign: "left", fontSize: 10, color: "var(--m)", textTransform: "uppercase", letterSpacing: 1 }}>{h}</th>)}</tr></thead>
+                <tbody>{liveSel.payments.map((p, i) => (<tr key={i} style={{ borderTop: "1px solid var(--l)" }}><td style={{ padding: "8px 10px" }}>{p.date}</td><td style={{ padding: "8px 10px", color: "var(--su)", fontWeight: 600 }}>{peso(p.amount)}</td><td style={{ padding: "8px 10px" }}>{p.mode ? <Badge label={p.mode} color="var(--b)" /> : "—"}</td><td style={{ padding: "8px 10px", color: "var(--m)" }}>{p.note || "—"}</td></tr>))}</tbody>
               </table>
             )}
             <div style={{ marginTop: 20 }}>
@@ -1011,14 +1136,33 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
         </Card>
         <Card style={{ gridColumn:"1/-1" }}>
           <h3 className="sf" style={{ fontSize:19,fontWeight:400,marginBottom:14 }}>OOT & Crew Meals Tracker</h3>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16 }}>
-            <div style={{ background:"var(--l)",borderRadius:8,padding:14,textAlign:"center" }}><div style={{ fontSize:10,color:"var(--m)",letterSpacing:1,textTransform:"uppercase",marginBottom:6 }}>Total OOT Fees</div><div className="sf" style={{ fontSize:26,color:"var(--b)",fontWeight:300 }}>{peso(suppliers.filter(s=>s.hasOOT).reduce((a,s)=>a+num(s.ootFee||0),0))}</div></div>
-            <div style={{ background:"var(--l)",borderRadius:8,padding:14,textAlign:"center" }}><div style={{ fontSize:10,color:"var(--m)",letterSpacing:1,textTransform:"uppercase",marginBottom:6 }}>Total Crew Meals</div><div className="sf" style={{ fontSize:26,color:"var(--g)",fontWeight:300 }}>{peso(suppliers.filter(s=>s.hasCrew).reduce((a,s)=>a+num(s.crewMeals||0),0))}</div></div>
-          </div>
+          {(() => {
+            const misc = suppliers.filter(s => s.hasOOT || s.hasCrew);
+            const sum = (arr, f) => arr.reduce((a, s) => a + f(s), 0);
+            const crewOf = s => s.hasCrew ? num(s.crewMeals) : 0, ootOf = s => s.hasOOT ? num(s.ootFee) : 0;
+            const onTop = misc.filter(s => !s.inContract), inside = misc.filter(s => s.inContract);
+            const totalCrew = sum(misc, crewOf), totalOOT = sum(misc, ootOf);
+            const cashOnDay = sum(onTop, s => crewOf(s) + ootOf(s)), insideAmt = sum(inside, s => crewOf(s) + ootOf(s));
+            const totalPax = sum(misc, s => num(s.crewPax));
+            return (
+              <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16 }}>
+                {[["Crew Meals", totalCrew, "var(--g)", `${totalPax} pax`], ["OOT Fees", totalOOT, "var(--b)", `${misc.filter(s=>s.hasOOT).length} suppliers`], ["Cash on the day", cashOnDay, "var(--r)", "on top of contracts"], ["Inside contracts", insideAmt, "var(--su)", "already committed"]].map(([l, v, c, sub]) => (
+                  <div key={l} style={{ background:"var(--l)",borderRadius:8,padding:12,textAlign:"center" }}>
+                    <div style={{ fontSize:9,color:"var(--m)",letterSpacing:1,textTransform:"uppercase",marginBottom:4 }}>{l}</div>
+                    <div className="sf" style={{ fontSize:22,color:c,fontWeight:300 }}>{peso(v)}</div>
+                    <div style={{ fontSize:10,color:"var(--m)" }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
           <div style={{ fontSize:10,color:"var(--m)",letterSpacing:1.5,textTransform:"uppercase",marginBottom:10,fontWeight:500 }}>Breakdown by Supplier</div>
           {suppliers.filter(s=>s.hasOOT||s.hasCrew).map(s=>(
             <div key={s.id} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 10px",background:"var(--cr)",borderRadius:6,marginBottom:6 }}>
-              <div><div style={{ fontSize:13,fontWeight:500 }}>{s.name}</div><div style={{ fontSize:11,color:"var(--m)" }}>{s.category}</div></div>
+              <div>
+                <div style={{ fontSize:13,fontWeight:500,display:"flex",alignItems:"center",gap:6 }}>{s.name}<Badge label={s.inContract ? "In contract" : "On top"} color={s.inContract ? "var(--su)" : "var(--r)"} /></div>
+                <div style={{ fontSize:11,color:"var(--m)" }}>{s.category}{s.crewPax ? ` · ${s.crewPax} pax × ${peso(s.mealRate)}` : ""}</div>
+              </div>
               <div style={{ display:"flex",gap:16,alignItems:"center" }}>
                 {s.hasOOT&&<div style={{ textAlign:"right" }}><div style={{ fontSize:9,color:"var(--b)",letterSpacing:1,textTransform:"uppercase" }}>OOT</div><div style={{ fontSize:13,color:"var(--b)",fontWeight:500 }}>{peso(s.ootFee)}</div></div>}
                 {s.hasCrew&&<div style={{ textAlign:"right" }}><div style={{ fontSize:9,color:"var(--g)",letterSpacing:1,textTransform:"uppercase" }}>Meals</div><div style={{ fontSize:13,color:"var(--g)",fontWeight:500 }}>{peso(s.crewMeals)}</div></div>}
@@ -1028,7 +1172,7 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
           ))}
           {suppliers.filter(s=>s.hasOOT||s.hasCrew).length===0&&<p style={{ fontSize:13,color:"var(--m)",textAlign:"center",padding:12 }}>No OOT or crew meal costs logged yet.</p>}
           <div style={{ borderTop:"1px solid var(--l)",marginTop:10,paddingTop:10,display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:600 }}>
-            <span>Combined Total</span>
+            <span>All misc costs (in contract + on top)</span>
             <span style={{ color:"var(--r)" }}>{peso(suppliers.reduce((a,s)=>a+(s.hasOOT?num(s.ootFee):0)+(s.hasCrew?num(s.crewMeals):0),0))}</span>
           </div>
         </Card>
@@ -1044,6 +1188,7 @@ function Dashboard({ onLogout }) {
   const [budget, setBudget] = useState(INIT_B);
   const [events, setEvents] = useState(INIT_E);
   const [totalBudget, setTotalBudget] = useState(0);
+  const [lastImport, setLastImport] = useState(null);
   const [saved, setSaved] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -1056,6 +1201,7 @@ function Dashboard({ onLogout }) {
       if (d.budget) setBudget(d.budget);
       if (d.events?.length) setEvents(d.events);
       if (d.totalBudget !== null) setTotalBudget(d.totalBudget);
+      if (d.lastImport) setLastImport(Number(d.lastImport));
       setLoading(false); initDone.current = true;
     }).catch(() => { setLoadError(true); setLoading(false); initDone.current = true; });
   }, []);
@@ -1063,9 +1209,9 @@ function Dashboard({ onLogout }) {
   useEffect(() => {
     if (!initDone.current) return;
     setSaved(false);
-    const t = setTimeout(() => { sbSave(suppliers, guests, budget, events, totalBudget).then(() => setSaved(true)).catch(() => setSaved(true)); }, 700);
+    const t = setTimeout(() => { sbSave(suppliers, guests, budget, events, totalBudget, lastImport).then(() => setSaved(true)).catch(() => setSaved(true)); }, 700);
     return () => clearTimeout(t);
-  }, [suppliers, guests, budget, events, totalBudget]);
+  }, [suppliers, guests, budget, events, totalBudget, lastImport]);
 
   const tabs = [
     { id:"overview",  label:"Overview",  icon:"◈" },
@@ -1095,7 +1241,8 @@ function Dashboard({ onLogout }) {
           {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{ width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:7,border:"none",marginBottom:2,fontSize:12,fontFamily:"'Jost',sans-serif",transition:"all .15s",background:tab===t.id?"rgba(196,150,122,.15)":"transparent",color:tab===t.id?"var(--r)":"#8A7E78",borderLeft:tab===t.id?"2px solid var(--r)":"2px solid transparent" }}><span>{t.icon}</span>{t.label}</button>))}
         </nav>
         <div style={{ padding:"12px 10px",borderTop:"1px solid rgba(255,255,255,.07)" }}>
-          <div style={{ fontSize:10,color:"#6A5E58",marginBottom:7,paddingLeft:10 }}>{saved?"✓ Saved":"Saving…"}</div>
+          <div style={{ fontSize:10,color:"#6A5E58",marginBottom:3,paddingLeft:10 }}>{saved?"✓ Saved":"Saving…"}</div>
+          {lastImport && <div style={{ fontSize:9,color:"#6A5E58",marginBottom:7,paddingLeft:10 }}>Excel: {new Date(lastImport).toLocaleDateString("en-PH",{month:"short",day:"numeric"})}</div>}
           <button onClick={onLogout} style={{ width:"100%",padding:"8px 11px",border:"none",borderRadius:7,background:"rgba(255,255,255,.04)",color:"#8A7E78",fontSize:11,cursor:"pointer",textAlign:"left",fontFamily:"'Jost',sans-serif" }}>← Lock</button>
         </div>
       </div>
@@ -1109,7 +1256,7 @@ function Dashboard({ onLogout }) {
             <p style={{ fontSize:12,color:"var(--m)" }}>Chicco &amp; Michelle · January 15, 2027</p>
           </div>
           {tab==="overview"  && <OverviewTab  suppliers={suppliers} guests={guests} budget={budget} events={events} totalBudget={totalBudget} />}
-          {tab==="suppliers" && <SuppliersTab suppliers={suppliers} setSuppliers={setSuppliers} budget={budget} />}
+          {tab==="suppliers" && <SuppliersTab suppliers={suppliers} setSuppliers={setSuppliers} budget={budget} setBudget={setBudget} events={events} setEvents={setEvents} totalBudget={totalBudget} setTotalBudget={setTotalBudget} lastImport={lastImport} setLastImport={setLastImport} />}
           {tab==="calendar"  && <CalendarTab  events={events} setEvents={setEvents} />}
           {tab==="budget"    && <BudgetTab    budget={budget} setBudget={setBudget} totalBudget={totalBudget} setTotalBudget={setTotalBudget} suppliers={suppliers} />}
           {tab==="guests"    && <GuestsTab    guests={guests} setGuests={setGuests} />}
