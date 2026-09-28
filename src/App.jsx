@@ -18,6 +18,8 @@ const sbLoad = () => Promise.race([
       sb.from("settings").select("*").eq("key", "totalBudget").single(),
     ]);
     const li = await sb.from("settings").select("*").eq("key", "lastImport").maybeSingle();
+    const firstErr = [s, g, e].find(r => r.error)?.error;
+    if (firstErr) throw new Error(firstErr.message);
     return {
       suppliers:   s.data?.map(r => r.data) || null,
       guests:      g.data?.map(r => r.data) || null,
@@ -27,7 +29,7 @@ const sbLoad = () => Promise.race([
       lastImport:  li.data?.value ?? null,
     };
   })(),
-  new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 10000)),
+  new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 25000)),
 ]);
 
 const sbSave = async (suppliers, guests, budget, events, totalBudget, lastImport) => {
@@ -35,7 +37,7 @@ const sbSave = async (suppliers, guests, budget, events, totalBudget, lastImport
     ids.length > 0
       ? sb.from(table).delete().not("id", "in", `(${ids.join(",")})`)
       : sb.from(table).delete().gte("id", 0);
-  await Promise.all([
+  const results = await Promise.all([
     sb.from("suppliers").upsert(suppliers.map(s => ({ id: s.id, data: s }))),
     sb.from("guests").upsert(guests.map(g => ({ id: g.id, data: g }))),
     sb.from("budget").upsert({ id: "main", data: budget.map(({ actual, ...rest }) => rest) }),
@@ -46,6 +48,8 @@ const sbSave = async (suppliers, guests, budget, events, totalBudget, lastImport
     cleanup("guests",    guests.map(g => g.id)),
     cleanup("events",    events.map(e => e.id)),
   ]);
+  const bad = results.find(r => r?.error);
+  if (bad) throw new Error(bad.error.message);
 };
 
 const injectStyles = () => {
@@ -76,12 +80,180 @@ const injectStyles = () => {
     .bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border:none;background:transparent;color:#8A7E78;font-size:9px;letter-spacing:1px;text-transform:uppercase;font-family:'Jost',sans-serif;cursor:pointer;}
     .bottom-nav button.active{color:var(--r);}
     .bottom-nav .bn-icon{font-size:17px;}
+
+    /* ── Landing page: photo-led ── */
+    @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Figtree:wght@300;400;500;600&display=swap');
+    html{scroll-behavior:smooth;}
+    .lp{--forest:#2C4536;--moss:#7D9470;--amber:#D9A55A;--wood:#1E1915;--wood2:#2A231D;--ivory:#F4EFE6;--sand:#E7E0D1;--ink:#2A2521;--ink2:#7B716A;--rule:#DDD5C6;
+        background:var(--ivory);color:var(--ink);font-family:'Figtree',system-ui,sans-serif;font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;}
+    .lp *{box-sizing:border-box;}
+    .lp h1,.lp h2,.lp h3,.lp .serif{font-family:'Bodoni Moda','Bodoni 72',Didot,serif;font-weight:400;letter-spacing:-.005em;}
+    .lp a{color:inherit;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px;opacity:.85;}
+    .lp a:hover{opacity:1;}
+    .lp p{margin:0 0 1em;max-width:58ch;}
+    .lp .wrap{max-width:1160px;margin:0 auto;padding:0 clamp(20px,5vw,56px);}
+    .lp .small{font-size:11px;letter-spacing:.26em;text-transform:uppercase;font-weight:500;opacity:.8;}
+    .lp .tag{font-family:'Figtree',sans-serif;font-weight:600;letter-spacing:.02em;}
+    .lp button,.lp input,.lp textarea{font-family:'Figtree',system-ui,sans-serif;}
+    .lp img{display:block;max-width:100%;}
+    /* hero */
+    .lp-hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;color:#fff;overflow:hidden;background:var(--forest);}
+    .lp-hero .bgwrap{position:absolute;inset:0;will-change:transform;}
+    .lp-hero .bg{position:absolute;inset:0;background-size:cover;background-position:var(--pos);opacity:0;transition:opacity 1.8s ease;animation:lp-kb 14s ease-out both;}
+    .lp-hero .bg.on{opacity:1;}
+    .lp-hero .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,30,22,.10) 0%,rgba(20,30,22,0) 40%,rgba(20,30,22,.78) 100%);}
+    .lp-hero .in{position:relative;width:100%;padding:0 clamp(20px,5vw,56px) clamp(36px,6vw,72px);}
+    .lp-hero .flower{position:absolute;top:clamp(20px,4vw,40px);left:clamp(20px,5vw,56px);cursor:default;user-select:none;-webkit-user-select:none;}
+    .lp-hero .names{font-size:clamp(64px,11vw,150px);line-height:.92;margin:0 0 18px;text-shadow:0 2px 24px rgba(0,0,0,.25);}
+    .lp-hero .names em{font-style:italic;color:var(--amber);font-size:.5em;display:inline-block;margin:0 .08em;vertical-align:.18em;}
+    .lp-hero .row{display:flex;flex-wrap:wrap;gap:12px 40px;align-items:flex-end;justify-content:space-between;}
+    .lp-hero .when{font-size:clamp(15px,1.6vw,19px);margin:0;max-width:none;}
+    .lp-hero .when b{display:block;font-weight:600;font-size:1.05em;}
+    .lp-hero .when .tag{color:var(--amber);display:block;margin-top:6px;}
+    .lp-count{display:flex;gap:clamp(14px,2.4vw,28px);}
+    .lp-count span{display:block;font-family:'Bodoni Moda',serif;font-size:clamp(30px,3.6vw,46px);line-height:1;color:#fff;}
+    .lp-count small{display:block;font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.75;margin-top:6px;}
+    /* sections */
+    .lp-sec{padding:clamp(64px,8vw,112px) 0;}
+    .lp-sec.dark{background:var(--wood);color:var(--ivory);}
+    .lp-sec.dark .small{color:var(--amber);}
+    .lp-sec.sand{background:var(--sand);}
+    .lp-sec h2{font-size:clamp(36px,4.6vw,60px);line-height:1.02;margin:10px 0 30px;}
+    .lp-sec h2 em{font-style:italic;color:var(--amber);}
+    .lp-sec.light h2 em,.lp-sec.sand h2 em{color:var(--moss);}
+    /* the day: timeline + window photo */
+    .lp-day{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(28px,6vw,80px);align-items:center;}
+    .lp-tl{list-style:none;margin:0;padding:0;position:relative;}
+    .lp-tl::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--amber);opacity:.7;}
+    .lp-tl li{position:relative;padding:0 0 26px 30px;}
+    .lp-tl li::before{content:"";position:absolute;left:-3px;top:13px;width:7px;height:7px;border-radius:50%;background:var(--amber);}
+    .lp-tl .t{font-family:'Bodoni Moda',serif;font-size:30px;line-height:1;color:var(--amber);display:inline-block;min-width:78px;}
+    .lp-tl .w{display:inline;font-size:17px;font-weight:500;}
+    .lp-tl .n{display:block;font-size:14px;opacity:.7;margin-top:2px;max-width:46ch;}
+    .lp-frame{position:relative;overflow:hidden;background:var(--wood2);}
+    .lp-frame img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s cubic-bezier(.2,.7,.2,1);}
+    .lp-frame:hover img{transform:scale(1.04);}
+    .lp-frame.tall{aspect-ratio:3/4;}
+    .lp-frame.wide{aspect-ratio:16/9;}
+    .lp-frame .cap{position:absolute;left:14px;bottom:12px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff;opacity:.8;}
+    /* getting there */
+    .lp-there{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:start;}
+    .lp-venue{padding:22px 0;border-top:1px solid var(--rule);}
+    .lp-venue h3{font-size:28px;margin:0 0 2px;line-height:1.15;}
+    .lp-venue .where{font-size:13px;color:var(--ink2);margin-bottom:8px;}
+    .lp-venue p{font-size:14px;margin-bottom:8px;}
+    .lp-note{border-left:2px solid var(--moss);padding:4px 0 4px 16px;font-size:14px;color:var(--ink2);margin-top:8px;max-width:56ch;}
+    .lp-wear{margin-top:28px;}
+    .lp-wear b{font-family:'Bodoni Moda',serif;font-weight:400;font-style:italic;font-size:26px;display:block;margin-top:4px;}
+    /* the two of us */
+    .lp-us{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,2.5vw,28px);}
+    .lp-us .lp-frame{aspect-ratio:4/5;}
+    .lp-people{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,44px);margin-top:36px;}
+    .lp-person h3{font-size:30px;margin:0 0 2px;}
+    .lp-person .who{color:var(--ink2);font-size:13px;margin-bottom:10px;}
+    .lp-person p{font-size:15px;}
+    .lp-hash{margin-top:44px;padding:clamp(22px,3vw,34px);background:var(--forest);color:var(--ivory);display:flex;flex-wrap:wrap;gap:12px 32px;align-items:center;justify-content:space-between;}
+    .lp-hash .h{font-family:'Bodoni Moda',serif;font-size:clamp(26px,3.6vw,44px);color:var(--amber);line-height:1;}
+    .lp-hash p{margin:0;font-size:14px;opacity:.85;max-width:40ch;}
+    /* gallery strip */
+    .lp-strip{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 clamp(20px,5vw,56px) 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+    .lp-strip::-webkit-scrollbar{display:none;}
+    .lp-strip .lp-frame{flex:0 0 auto;width:min(72vw,420px);aspect-ratio:3/4;scroll-snap-align:start;}
+    .lp-strip .lp-frame.wide{width:min(88vw,640px);aspect-ratio:16/10;}
+    /* rsvp */
+    .lp-form{max-width:460px;}
+    .lp-form label{display:block;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2);margin:20px 0 6px;}
+    .lp-form input,.lp-form textarea{width:100%;border:0;border-bottom:1px solid #C9BFAD;background:transparent;border-radius:0;padding:10px 0;font-size:16px;color:var(--ink);outline:none;}
+    .lp-form input:focus,.lp-form textarea:focus{border-bottom-color:var(--forest);}
+    .lp-form textarea{resize:vertical;min-height:70px;}
+    .lp-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+    .lp-choice button{padding:13px 10px;border:1px solid var(--forest);background:transparent;color:var(--forest);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:0;}
+    .lp-choice button.on{background:var(--forest);color:#fff;}
+    .lp-btn{display:inline-block;margin-top:26px;padding:14px 30px;background:var(--forest);color:#fff;border:0;font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:0;}
+    .lp-btn:hover{background:#213629;}
+    .lp-btn.amber{background:var(--amber);color:var(--wood);}
+    .lp-btn.amber:hover{background:#E4B56E;}
+    .lp-choice button:focus-visible,.lp-btn:focus-visible,.lp-opt:focus-visible{outline:2px solid var(--amber);outline-offset:3px;}
+    .lp-err{color:#9A4B3A;font-size:13px;margin-top:12px;}
+    /* quiz */
+    .lp-quiz{max-width:520px;border:1px solid rgba(255,255,255,.18);padding:clamp(22px,3vw,34px);}
+    .lp-quiz .meta{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.7;margin-bottom:12px;}
+    .lp-quiz .bar{height:1px;background:rgba(255,255,255,.18);margin-bottom:22px;}
+    .lp-quiz .bar i{display:block;height:100%;background:var(--amber);transition:width .3s;}
+    .lp-quiz .q{font-family:'Bodoni Moda',serif;font-size:clamp(22px,2.6vw,27px);line-height:1.3;margin:0 0 18px;}
+    .lp-opt{display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;background:transparent;border:1px solid rgba(255,255,255,.22);color:var(--ivory);font-size:15px;cursor:pointer;border-radius:0;}
+    .lp-opt:hover:not(:disabled){border-color:var(--amber);}
+    .lp-opt.right{background:var(--amber);border-color:var(--amber);color:var(--wood);font-weight:600;}
+    .lp-opt.wrong{opacity:.35;text-decoration:line-through;}
+    /* footer */
+    .lp-foot{background:var(--forest);color:var(--ivory);padding:clamp(48px,7vw,88px) 0;text-align:center;}
+    .lp-foot .big{font-family:'Bodoni Moda',serif;font-size:clamp(36px,5vw,64px);line-height:1;margin:14px 0 8px;}
+    .lp-foot .big em{color:var(--amber);}
+    .lp-foot .tag{font-size:clamp(18px,2.4vw,26px);color:var(--amber);margin:8px 0 22px;}
+    .lp-foot p{margin:0 auto .6em;font-size:14px;opacity:.85;max-width:60ch;}
+    @media(max-width:820px){
+      .lp-day,.lp-there,.lp-us,.lp-people{grid-template-columns:1fr;}
+      .lp-hero{min-height:92svh;}
+      .lp-hero .bg{background-position:var(--posm);}
+      .lp-hero .in{padding-bottom:40px;}
+      .lp-hero .names{font-size:clamp(52px,15vw,88px);}
+      .lp-hero .when{font-size:14px;}
+      .lp-hero .row{flex-direction:column;align-items:flex-start;}
+      .lp-day .lp-frame.tall{aspect-ratio:4/3;}
+    }
+    /* ── motion ── */
+    @keyframes lp-kb{from{transform:scale(1.08);}to{transform:scale(1);}}
+    @keyframes lp-draw{to{stroke-dashoffset:0;}}
+    @keyframes lp-rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+    @keyframes lp-tick{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+    @keyframes lp-bloom{0%{transform:scale(.2) rotate(-40deg);opacity:0;}60%{transform:scale(1.08) rotate(4deg);opacity:1;}100%{transform:scale(1) rotate(0);}}
+    @keyframes lp-pulse{0%,100%{box-shadow:0 0 0 0 rgba(122,92,67,.35);}50%{box-shadow:0 0 0 6px rgba(122,92,67,0);}}
+    .lp .draw svg *{stroke-dasharray:1;stroke-dashoffset:1;animation:lp-draw 2.2s ease-out forwards;}
+    .lp .draw svg *:nth-child(2n){animation-duration:2.8s;animation-delay:.3s;}
+    .lp .draw svg *:nth-child(3n){animation-duration:3.2s;animation-delay:.7s;}
+    .lp .draw svg *:nth-child(5n){animation-delay:1.1s;}
+    .lp .draw svg *[fill]:not([fill="none"]){animation:lp-rise 1.2s 1.6s both;}
+    .lp-hero .flower svg circle{stroke-dasharray:1;stroke-dashoffset:1;animation:lp-draw 1.4s ease-out forwards;}
+    .lp-hero .flower svg circle:nth-child(2){animation-delay:.15s}.lp-hero .flower svg circle:nth-child(3){animation-delay:.3s}.lp-hero .flower svg circle:nth-child(4){animation-delay:.45s}.lp-hero .flower svg circle:nth-child(5){animation-delay:.7s}.lp-hero .flower svg circle:nth-child(6){animation:lp-rise .6s 1.1s both;}
+    .lp .rise{animation:lp-rise 1s cubic-bezier(.2,.7,.2,1) both;}
+    .lp .rise.d1{animation-delay:.4s}.lp .rise.d2{animation-delay:.7s}.lp .rise.d3{animation-delay:1s}.lp .rise.d4{animation-delay:1.2s}
+    .lp-side .taal{transition:transform .1s linear;will-change:transform;}
+    .lp-count span i{display:inline-block;font-style:normal;animation:lp-tick .35s ease-out;}
+    .lp .rv{opacity:0;transform:translateY(22px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1);}
+    .lp .rv.in{opacity:1;transform:none;}
+    .lp-tl{border-left:0;position:relative;}
+    .lp-tl::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--olive);transform:scaleY(0);transform-origin:top;transition:transform 1.6s cubic-bezier(.2,.7,.2,1);}
+    .lp-tl.in::before{transform:scaleY(1);}
+    .lp-tl li::before{transform:scale(0);transition:transform .4s cubic-bezier(.3,1.4,.5,1);}
+    .lp-tl.in li::before{transform:scale(1);}
+    .lp-tl li{transition:transform .3s;}
+    .lp-tl li:hover{transform:translateX(4px);}
+    .lp-tl li:hover::before{animation:lp-pulse 1.2s infinite;}
+    .lp-toc a{transition:color .2s,padding-left .25s;}
+    .lp-toc a.active{color:var(--olive2);padding-left:6px;}
+    .lp-toc a.active::before{width:28px;opacity:1;}
+    .lp-toc a::before{transition:width .25s;}
+    .lp-choice button,.lp-btn,.lp-opt{transition:background .2s,color .2s,border-color .2s,transform .15s;}
+    .lp-choice button:active,.lp-btn:active{transform:scale(.97);}
+    .lp-opt.right{animation:lp-tick .35s ease-out;}
+    .lp .bloom svg{animation:lp-bloom 1s cubic-bezier(.3,1.3,.5,1) both;}
+    .lp-photo{transition:transform .5s;}
+    .lp-person:hover .lp-photo{transform:translateY(-4px);}
+    @media(prefers-reduced-motion:reduce){
+      .lp *{transition:none!important;animation:none!important;}
+      .lp .draw svg *,.lp-hero .flower svg circle{stroke-dashoffset:0!important;}
+      .lp .rv{opacity:1;transform:none;}
+      .lp-tl::before{transform:none;} .lp-tl li::before{transform:none;}
+      html{scroll-behavior:auto;}
+    }
     @media(max-width:768px){
       .dash-sidebar{display:none!important;}
       .dash-content{padding:14px 12px 80px!important;}
       .bottom-nav{display:flex!important;}
       .modal-wrap{align-items:flex-end!important;padding:0!important;}
       .modal-box{max-width:100%!important;width:100%!important;border-radius:16px 16px 0 0!important;max-height:92vh!important;}
+      .dash-content div[style*="grid-template-columns: 1fr 1fr"],.dash-content div[style*="grid-template-columns: 3fr 2fr"],.dash-content div[style*="grid-template-columns: 1fr 260px"]{grid-template-columns:1fr!important;}
+      .dash-content div[style*="grid-template-columns: repeat(4,1fr)"],.dash-content div[style*="grid-template-columns: repeat(3,1fr)"]{grid-template-columns:1fr 1fr!important;}
     }
   `;
   document.head.appendChild(s);
@@ -90,15 +262,18 @@ const injectStyles = () => {
 const WEDDING = new Date("2027-01-15T15:00:00+08:00");
 const peso = n => `₱${Number(n || 0).toLocaleString("en-PH")}`;
 const todayISO = () => new Date().toISOString().split("T")[0];
+const WEDDING_ISO = "2027-01-15";
+const daysUntil = iso => Math.ceil((new Date(iso + "T00:00:00") - new Date(todayISO() + "T00:00:00")) / 86400000);
+const monthLabel = ym => new Date(ym + "-01T00:00:00").toLocaleString("en-PH", { month: "short", year: "numeric" });
 const toISO = (y, m, d) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 const num = v => Number(v) || 0;
 const newId = (idx = 0) => Date.now() + idx;
 
-const ETYPES = ["Payment Due","Meeting","Milestone","Fitting","Tasting","Personal"];
+const ETYPES = ["Payment Due","Deadline","Meeting","Milestone","Fitting","Tasting","Personal"];
 const MEALS = ["Beef","Fish","Chicken","Vegetarian"];
 const RSVPS = ["Pending","Confirmed","Declined"];
 const GROUPS = ["Bride","Groom","Mutual"];
-const EC = {"Payment Due":"#C47A7A","Meeting":"#7A9EAD","Milestone":"#B8976A","Fitting":"#C4967A","Tasting":"#7A9E8A","Personal":"#7A6E68"};
+const EC = {"Payment Due":"#C47A7A","Deadline":"#8A6FA8","Meeting":"#7A9EAD","Milestone":"#B8976A","Fitting":"#C4967A","Tasting":"#7A9E8A","Personal":"#7A6E68"};
 const SC = {"Unpaid":"#C47A7A","Partial":"#C4A87A","Fully Paid":"#7A9E8A"};
 const RC = {"Pending":"#C4A87A","Confirmed":"#7A9E8A","Declined":"#C47A7A"};
 
@@ -286,7 +461,7 @@ const importFromExcel = (wb, prev) => {
     s.total = computeSupplierTotal(s); s.paid = paid;
     s.status = paid === 0 ? "Unpaid" : paid >= s.total ? "Fully Paid" : "Partial";
     suppliers.push(s);
-    pending.forEach(r => { if (r.dueDate) payEvents.push({ id: idBase++, title: `${g.vendor} – ${r.type || "Payment"}`, date: r.dueDate, type: "Payment Due", amount: r.amount, notes: r.mode ? `${peso(r.amount)} (${r.mode})` : peso(r.amount) }); });
+    pending.forEach(r => { if (r.dueDate) payEvents.push({ id: idBase++, title: `${g.vendor} – ${r.type || "Payment"}`, date: r.dueDate, type: "Payment Due", amount: r.amount, supplier: g.vendor, notes: r.mode ? `${peso(r.amount)} (${r.mode})` : peso(r.amount) }); });
   });
   suppliers.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -311,8 +486,25 @@ const importFromExcel = (wb, prev) => {
     }
   }
 
-  const events = [...(prev.events || []).filter(e => e.type !== "Payment Due"), ...payEvents];
-  return { suppliers, budget, events, totalBudget, errors, summary: `${suppliers.length} suppliers · ${suppliers.filter(s => s.hasCrew || s.hasOOT).length} with crew/OOT · ${budget.length} budget categories · ${payEvents.length} payment-due events` };
+  /* ── Deadlines → calendar events (type "Deadline") ── */
+  const dlEvents = [];
+  const dl = rowsOf(wb, "Deadlines");
+  if (dl) {
+    const dh = findHeader(dl, "Task");
+    if (dh >= 0) {
+      const DH = dl[dh]; const dT = colIdx(DH, "Task"), dV = colIdx(DH, "Vendor"), dD = colIdx(DH, "Due Date"), dS = colIdx(DH, "Status"), dN = colIdx(DH, "Notes");
+      dl.slice(dh + 1).forEach((r, i) => {
+        const task = clean(r?.[dT]); if (!task) return;
+        const date = xlDate(r[dD]);
+        if (!date) { errors.push(`Deadlines row ${dh + i + 2}: "${task}" has no due date — skipped`); return; }
+        const status = clean(r[dS]).toLowerCase();
+        dlEvents.push({ id: idBase++, title: task, date, type: "Deadline", amount: 0, supplier: dV >= 0 ? clean(r[dV]) : "", notes: dN >= 0 ? clean(r[dN]) : "", done: /done|complete|paid|submitted/.test(status) });
+      });
+    }
+  }
+
+  const events = [...(prev.events || []).filter(e => e.type !== "Payment Due" && e.type !== "Deadline"), ...payEvents, ...dlEvents];
+  return { suppliers, budget, events, totalBudget, errors, deadlineCount: dlEvents.length, summary: `${suppliers.length} suppliers · ${suppliers.filter(s => s.hasCrew || s.hasOOT).length} with crew/OOT · ${budget.length} budget categories · ${payEvents.length} payment-due events · ${dlEvents.length} deadlines` };
 };
 
 const Btn = ({ children, onClick, v = "primary", style: sx = {} }) => {
@@ -379,43 +571,35 @@ const DogSketch = () => (
 );
 
 function Countdown() {
-  const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0 });
+  const [t, setT] = useState(null);
   useEffect(() => {
-    const tick = () => {
-      const diff = WEDDING - Date.now();
-      if (diff <= 0) return setT({ d: 0, h: 0, m: 0, s: 0 });
-      setT({ d: Math.floor(diff / 86400000), h: Math.floor(diff % 86400000 / 3600000), m: Math.floor(diff % 3600000 / 60000), s: Math.floor(diff % 60000 / 1000) });
-    };
+    const tick = () => { const diff = Math.max(0, WEDDING - Date.now()); setT({ d: Math.floor(diff / 86400000), h: Math.floor(diff % 86400000 / 3600000), m: Math.floor(diff % 3600000 / 60000), s: Math.floor(diff % 60000 / 1000) }); };
     tick(); const id = setInterval(tick, 1000); return () => clearInterval(id);
   }, []);
+  if (!t) return null;
   return (
-    <div style={{ display: "flex", gap: 24, justifyContent: "center" }}>
-      {[["Days", t.d], ["Hours", t.h], ["Mins", t.m], ["Secs", t.s]].map(([l, v]) => (
-        <div key={l} style={{ textAlign: "center" }}>
-          <div className="sf" style={{ fontSize: 42, lineHeight: 1, color: "var(--r)", fontWeight: 300 }}>{String(v).padStart(2, "0")}</div>
-          <div style={{ fontSize: 9, letterSpacing: 3, color: "var(--m)", marginTop: 4, textTransform: "uppercase" }}>{l}</div>
-        </div>
-      ))}
+    <div className="lp-count" aria-label="Countdown to the wedding">
+      {[["days", t.d], ["hrs", t.h], ["min", t.m], ["sec", t.s]].map(([l, v]) => <div key={l}><span><i key={v}>{String(v).padStart(2, "0")}</i></span><small>{l}</small></div>)}
     </div>
   );
 }
 
 const TaalSketch = ({ width = 400, color = "#C4967A" }) => (
   <svg viewBox="0 0 400 220" width={width} height={width * 220 / 400} fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.82 }}>
-    <path d="M60 38 Q72 30 84 36 Q88 26 100 28 Q114 22 118 34 Q126 30 128 38" strokeWidth="1" opacity="0.4"/>
-    <path d="M280 28 Q292 20 308 24 Q316 16 330 20 Q344 18 348 28 Q356 24 360 32" strokeWidth="1" opacity="0.4"/>
-    <path d="M0 90 Q40 72 80 80 Q120 68 160 75 Q200 65 240 72 Q280 62 320 70 Q360 65 400 75 L400 95 L0 95 Z" strokeWidth="1.2" fill="rgba(196,150,122,.06)" opacity="0.7"/>
-    <path d="M30 130 Q100 118 200 122 Q300 118 370 130" strokeWidth="1.4"/>
-    <path d="M20 138 Q100 128 200 132 Q300 128 380 138" strokeWidth="0.8" opacity="0.5"/>
-    <path d="M40 146 Q120 138 200 140 Q280 138 360 146" strokeWidth="0.6" opacity="0.35"/>
-    <path d="M158 122 Q175 100 200 96 Q225 100 242 122" strokeWidth="1.6"/>
-    <path d="M178 104 Q190 98 200 97 Q210 98 222 104" strokeWidth="1.2"/>
-    <ellipse cx="200" cy="108" rx="12" ry="5" strokeWidth="1" opacity="0.7"/>
-    <path d="M0 165 Q50 142 110 155 Q160 145 200 150 Q240 145 290 155 Q340 145 400 160 L400 220 L0 220 Z" strokeWidth="1.6" fill="rgba(196,150,122,.07)"/>
-    <path d="M35 165 L35 152 M28 158 Q35 148 42 158" strokeWidth="1.1" opacity="0.6"/>
-    <path d="M55 162 L55 150 M48 156 Q55 146 62 156" strokeWidth="1.1" opacity="0.6"/>
-    <path d="M345 162 L345 150 M338 156 Q345 146 352 156" strokeWidth="1.1" opacity="0.6"/>
-    <path d="M365 165 L365 154 M358 159 Q365 150 372 159" strokeWidth="1.1" opacity="0.6"/>
+    <path pathLength="1" d="M60 38 Q72 30 84 36 Q88 26 100 28 Q114 22 118 34 Q126 30 128 38" strokeWidth="1" opacity="0.4"/>
+    <path pathLength="1" d="M280 28 Q292 20 308 24 Q316 16 330 20 Q344 18 348 28 Q356 24 360 32" strokeWidth="1" opacity="0.4"/>
+    <path pathLength="1" d="M0 90 Q40 72 80 80 Q120 68 160 75 Q200 65 240 72 Q280 62 320 70 Q360 65 400 75 L400 95 L0 95 Z" strokeWidth="1.2" fill="rgba(196,150,122,.06)" opacity="0.7"/>
+    <path pathLength="1" d="M30 130 Q100 118 200 122 Q300 118 370 130" strokeWidth="1.4"/>
+    <path pathLength="1" d="M20 138 Q100 128 200 132 Q300 128 380 138" strokeWidth="0.8" opacity="0.5"/>
+    <path pathLength="1" d="M40 146 Q120 138 200 140 Q280 138 360 146" strokeWidth="0.6" opacity="0.35"/>
+    <path pathLength="1" d="M158 122 Q175 100 200 96 Q225 100 242 122" strokeWidth="1.6"/>
+    <path pathLength="1" d="M178 104 Q190 98 200 97 Q210 98 222 104" strokeWidth="1.2"/>
+    <ellipse pathLength="1" cx="200" cy="108" rx="12" ry="5" strokeWidth="1" opacity="0.7"/>
+    <path pathLength="1" d="M0 165 Q50 142 110 155 Q160 145 200 150 Q240 145 290 155 Q340 145 400 160 L400 220 L0 220 Z" strokeWidth="1.6" fill="rgba(196,150,122,.07)"/>
+    <path pathLength="1" d="M35 165 L35 152 M28 158 Q35 148 42 158" strokeWidth="1.1" opacity="0.6"/>
+    <path pathLength="1" d="M55 162 L55 150 M48 156 Q55 146 62 156" strokeWidth="1.1" opacity="0.6"/>
+    <path pathLength="1" d="M345 162 L345 150 M338 156 Q345 146 352 156" strokeWidth="1.1" opacity="0.6"/>
+    <path pathLength="1" d="M365 165 L365 154 M358 159 Q365 150 372 159" strokeWidth="1.1" opacity="0.6"/>
   </svg>
 );
 
@@ -438,14 +622,49 @@ const ChurchSketch = ({ width = 400, color = "#C4967A" }) => (
 
 const FlowerLogo = ({ size = 80, color = "#C4967A" }) => (
   <svg viewBox="0 0 100 100" width={size} height={size} fill="none" stroke={color} strokeWidth="1.4">
-    <circle cx="50" cy="34" r="18" /><circle cx="50" cy="66" r="18" />
-    <circle cx="34" cy="50" r="18" /><circle cx="66" cy="50" r="18" />
-    <circle cx="50" cy="50" r="7" /><circle cx="50" cy="50" r="2.5" fill={color} />
+    <circle pathLength="1" cx="50" cy="34" r="18" /><circle pathLength="1" cx="50" cy="66" r="18" />
+    <circle pathLength="1" cx="34" cy="50" r="18" /><circle pathLength="1" cx="66" cy="50" r="18" />
+    <circle pathLength="1" cx="50" cy="50" r="7" /><circle pathLength="1" cx="50" cy="50" r="2.5" fill={color} />
   </svg>
 );
 
+/* Photos live in public/photos/ (served by Cloudflare) */
+const PHOTOS = { hero: "/photos/hero.jpg", bouquet2: "/photos/bouquet2.jpg", kiss: "/photos/kiss.jpg", michelle: "/photos/michelle.jpg", chicco: "/photos/chicco.jpg", laughbw: "/photos/laughbw.jpg", field: "/photos/field.jpg", standing: "/photos/standing.jpg", bridge: "/photos/bridge.jpg", house: "/photos/house.jpg", dinner: "/photos/dinner.jpg", window: "/photos/window.jpg", lanai: "/photos/lanai.jpg" };
+const HASHTAG = "#naCuaNaSiChicco";
+const HERO_SHOTS = [{ src: PHOTOS.hero, pos: "center 32%", mobile: "48% 30%" }, { src: PHOTOS.bridge, pos: "center 60%", mobile: "70% 62%" }];
+
+/* reveal-on-scroll + scrollspy */
+function useReveal() {
+  useEffect(() => {
+    const els = Array.from(document.querySelectorAll(".lp .rv, .lp .lp-tl"));
+    if (!("IntersectionObserver" in window)) { els.forEach(e => e.classList.add("in")); return; }
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .15, rootMargin: "0px 0px -8% 0px" });
+    els.forEach(e => io.observe(e)); return () => io.disconnect();
+  }, []);
+}
+function useScrollSpy(ids, setActive) {
+  useEffect(() => {
+    const secs = ids.map(id => document.getElementById(id)).filter(Boolean);
+    if (!secs.length || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(es => { const v = es.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]; if (v) setActive(v.target.id); }, { threshold: [.25, .5, .75] });
+    secs.forEach(s => io.observe(s)); return () => io.disconnect();
+  }, []);
+}
+function useParallax(ref, factor = .06) {
+  useEffect(() => {
+    const el = ref.current; if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { el.style.transform = `translateY(${window.scrollY * factor}px)`; }); };
+    window.addEventListener("scroll", onScroll, { passive: true }); return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(raf); };
+  }, []);
+}
+
 function Landing({ onEnter }) {
   const [adminClicks, setAdminClicks] = useState(0);
+  const heroRef = useRef(null);
+  useReveal(); useParallax(heroRef, .25);
+  const [heroIdx, setHeroIdx] = useState(() => Math.floor(Math.random() * HERO_SHOTS.length));
+  useEffect(() => { const id = setInterval(() => setHeroIdx(i => (i + 1) % HERO_SHOTS.length), 8000); return () => clearInterval(id); }, []);
   const [rsvpName, setRsvpName] = useState("");
   const [rsvpAttending, setRsvpAttending] = useState(null);
   const [rsvpNote, setRsvpNote] = useState("");
@@ -456,154 +675,201 @@ function Landing({ onEnter }) {
   const [quizScore, setQuizScore] = useState(0);
   const [quizDone, setQuizDone] = useState(false);
 
-  const handleLogoClick = () => {
-    const next = adminClicks + 1; setAdminClicks(next);
-    if (next >= 5) { setAdminClicks(0); onEnter(); }
-  };
+  const handleLogoClick = () => { const n = adminClicks + 1; setAdminClicks(n); if (n >= 5) { setAdminClicks(0); onEnter(); } };
   const handleRsvp = async () => {
-    if (!rsvpName.trim()) { setRsvpError("Please enter your name."); return; }
-    if (rsvpAttending === null) { setRsvpError("Please select if you'll be attending."); return; }
+    if (!rsvpName.trim()) { setRsvpError("Add your name so we know who's replying."); return; }
+    if (rsvpAttending === null) { setRsvpError("Let us know whether you can make it."); return; }
     const entry = { id: Date.now(), name: rsvpName.trim(), attending: rsvpAttending, note: rsvpNote.trim(), submittedAt: new Date().toISOString() };
-    await sb.from("rsvps").insert({ id: entry.id, data: entry });
+    try { await sb.from("rsvps").insert({ id: entry.id, data: entry }); } catch (e) { /* keep the thank-you */ }
     setRsvpSent(true);
   };
   const quiz = [
     { q: "Where did Chicco and Michelle first meet?", opts: ["At a coffee shop", "Through mutual friends", "At work", "At a concert"], ans: 1 },
-    { q: "What is Chicco's favorite thing to cook?", opts: ["Pasta", "BBQ", "Sinigang", "Breakfast"], ans: 2 },
-    { q: "What does Michelle do when she's stressed?", opts: ["Retail therapy", "Binge-watch K-dramas", "Go for a run", "Call her mom"], ans: 1 },
-    { q: "How long have Chicco and Michelle been together?", opts: ["2 years", "4 years", "6 years", "8 years"], ans: 2 },
-    { q: "What is the couple's dog's name?", opts: ["Coco", "Lulu", "Mocha", "Biscuit"], ans: 1 },
+    { q: "What is Chicco's favourite thing to cook?", opts: ["Pasta", "Barbecue", "Sinigang", "Breakfast"], ans: 2 },
+    { q: "What does Michelle do when she's stressed?", opts: ["Retail therapy", "Binge a K-drama", "Go for a run", "Call her mom"], ans: 1 },
+    { q: "How long have they been together?", opts: ["2 years", "4 years", "6 years", "8 years"], ans: 2 },
+    { q: "What is their dog's name?", opts: ["Coco", "Lulu", "Mocha", "Biscuit"], ans: 1 },
   ];
-  const handleQuizAns = (i) => { if (quizAns !== null) return; setQuizAns(i); if (i === quiz[quizIdx].ans) setQuizScore(s => s + 1); };
-  const nextQuiz = () => { if (quizIdx + 1 >= quiz.length) { setQuizDone(true); } else { setQuizIdx(q => q + 1); setQuizAns(null); } };
-  const divider = (<div style={{ display: "flex", alignItems: "center", gap: 16, margin: "52px auto", maxWidth: 340 }}><div style={{ flex: 1, height: 1, background: "linear-gradient(to right, transparent, #C4967A66)" }} /><FlowerLogo size={20} color="#C4967A" /><div style={{ flex: 1, height: 1, background: "linear-gradient(to left, transparent, #C4967A66)" }} /></div>);
-  const SectionLabel = ({ children }) => (<p style={{ fontSize: 9, letterSpacing: 6, color: "#C4967A", textTransform: "uppercase", marginBottom: 12, fontWeight: 500 }}>{children}</p>);
+  const handleQuizAns = i => { if (quizAns !== null) return; setQuizAns(i); if (i === quiz[quizIdx].ans) setQuizScore(s => s + 1); };
+  const nextQuiz = () => { if (quizIdx + 1 >= quiz.length) setQuizDone(true); else { setQuizIdx(q => q + 1); setQuizAns(null); } };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F7F2EA", fontFamily: "'Jost', sans-serif", color: "#2E2520" }}>
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 24px 60px", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(196,150,122,.13) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(to right, #C4967A, #B8976A, #7A9EAD, #C4967A)" }} />
-        <div className="fade" style={{ zIndex: 1, maxWidth: 480 }}>
-          <div onClick={handleLogoClick} style={{ cursor: "default", userSelect: "none", marginBottom: 32, display: "flex", justifyContent: "center" }}><FlowerLogo size={76} color="#C4967A" /></div>
-          <p style={{ fontSize: 9, letterSpacing: 7, color: "#C4967A", textTransform: "uppercase", marginBottom: 22 }}>Together with their families</p>
-          <h1 className="sf" style={{ fontSize: 64, fontWeight: 300, lineHeight: 1, color: "#2E2520", marginBottom: 6 }}>Chicco</h1>
-          <p className="sf" style={{ fontSize: 28, color: "#B8976A", fontStyle: "italic", margin: "4px 0" }}>&amp;</p>
-          <h1 className="sf" style={{ fontSize: 64, fontWeight: 300, lineHeight: 1, color: "#2E2520", marginBottom: 28 }}>Michelle</h1>
-          <p style={{ fontSize: 9, letterSpacing: 6, color: "#9A8E88", textTransform: "uppercase", marginBottom: 40 }}>Request the honour of your presence</p>
-          <Countdown />
-          <div style={{ marginTop: 36, display: "inline-flex", alignItems: "center", gap: 10, background: "rgba(196,150,122,.12)", border: "1px solid rgba(196,150,122,.3)", borderRadius: 3, padding: "10px 24px" }}>
-            <span style={{ fontSize: 10, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>January 15, 2027 · Tagaytay</span>
+    <div className="lp">
+      {/* Hero: the bridge */}
+      <header className="lp-hero">
+        <div className="bgwrap" ref={heroRef}>
+          {HERO_SHOTS.map((s, i) => <div key={s.src} className={"bg" + (i === heroIdx ? " on" : "")} style={{ backgroundImage: `url(${s.src})`, "--pos": s.pos, "--posm": s.mobile }} />)}
+        </div>
+        <div className="veil" />
+        <div className="flower" onClick={handleLogoClick} aria-hidden="true"><FlowerLogo size={40} color="#FFFFFF" /></div>
+        <div className="in">
+          <div className="small rise d1">Together with their families</div>
+          <h1 className="names rise d2">Chicco<em>&amp;</em>Michelle</h1>
+          <div className="row">
+            <p className="when rise d3"><b>Friday, 15 January 2027</b>Our Lady of Lourdes and Antonio's, Tagaytay<span className="tag">{HASHTAG}</span></p>
+            <div className="rise d4"><Countdown /></div>
           </div>
         </div>
-        <div style={{ position: "absolute", bottom: 28, left: "50%", transform: "translateX(-50%)", fontSize: 9, letterSpacing: 4, color: "#C4B8AC", textTransform: "uppercase" }}>scroll ↓</div>
-      </div>
-      <div style={{ background: "linear-gradient(135deg, #EDE7D9 0%, #E8DDD0 100%)", padding: "72px 24px", textAlign: "center" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}><TaalSketch width={Math.min(520, typeof window !== "undefined" ? window.innerWidth - 48 : 460)} /></div>
-        <p style={{ fontSize: 9, letterSpacing: 5, color: "#C4967A", textTransform: "uppercase", marginBottom: 20 }}>Tagaytay City, Cavite</p>
-        <p className="sf" style={{ fontSize: 23, fontWeight: 300, fontStyle: "italic", color: "#6E6258", lineHeight: 2, maxWidth: 500, margin: "0 auto" }}>"Join us in celebrating our union beneath the open skies of Tagaytay, where the lake meets the mountains and the evening glows golden."</p>
-      </div>
-      <div style={{ padding: "80px 24px", textAlign: "center", maxWidth: 540, margin: "0 auto" }}>
-        <SectionLabel>The Celebration</SectionLabel>
-        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 48 }}>January 15, 2027</h2>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}><ChurchSketch width={360} /></div>
-        <div style={{ borderRadius: 8, marginBottom: 16, textAlign: "left", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", overflow: "hidden", border: "1px solid #EDE7D9" }}>
-          <div style={{ height: 4, background: "linear-gradient(to right, #C4967A, #B8976A)" }} />
-          <div style={{ padding: "22px 26px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}><span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 600 }}>3:00 PM</span><div style={{ width: 1, height: 12, background: "#E0D8D0" }} /><span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Wedding Ceremony</span></div>
-            <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Our Lady of Lourdes Parish</p>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p><a href="https://maps.google.com/?q=Our+Lady+of+Lourdes+Parish+Tagaytay" target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, letterSpacing: 2, color: "#C4967A", textTransform: "uppercase", textDecoration: "none", borderBottom: "1px solid rgba(196,150,122,.3)" }}>Get Directions ↗</a></div>
+      </header>
+
+      {/* The day: candlelight */}
+      <section className="lp-sec dark" id="day">
+        <div className="wrap lp-day">
+          <div>
+            <div className="small rv">The day</div>
+            <h2 className="rv" style={{ transitionDelay: ".1s" }}>From the first hymn to the <em>last dance</em></h2>
+            <ol className="lp-tl">
+              <li><span className="t">2:45</span><span className="w">Be seated</span><span className="n">Our Lady of Lourdes Parish. The doors close for the processional.</span></li>
+              <li><span className="t">3:00</span><span className="w">Ceremony</span><span className="n">A nuptial mass, about an hour and a quarter.</span></li>
+              <li><span className="t">4:30</span><span className="w">Photos on the church steps</span><span className="n">Then a ten-minute drive to Antonio's.</span></li>
+              <li><span className="t">5:00</span><span className="w">Cocktails on the lanai</span><span className="n">Drinks and live music while the sun goes down over the ridge.</span></li>
+              <li><span className="t">6:30</span><span className="w">Dinner and toasts</span><span className="n">In the main house.</span></li>
+              <li><span className="t">8:30</span><span className="w">Dancing</span><span className="n">The band plays until eleven. Wear shoes you can move in.</span></li>
+            </ol>
+          </div>
+          <div className="lp-frame tall rv" style={{ transitionDelay: ".2s" }}><img src={PHOTOS.kiss} alt="Chicco kissing Michelle's hand at dinner" loading="lazy" /></div>
+        </div>
+      </section>
+
+      {/* Getting there */}
+      <section className="lp-sec sand light" id="there">
+        <div className="wrap">
+          <div className="lp-frame wide rv" style={{ marginBottom: 44 }}><img src={PHOTOS.field} alt="Chicco and Michelle in a field with trees behind" loading="lazy" /></div>
+          <div className="lp-there">
+            <div>
+              <div className="small rv">Getting there</div>
+              <h2 className="rv" style={{ transitionDelay: ".1s" }}>Up the ridge to <em>Tagaytay</em></h2>
+              <div className="lp-note rv" style={{ transitionDelay: ".2s" }}>Friday traffic out of Manila runs two to three hours, so leave by noon. It is noticeably cooler in the evening; bring a wrap or jacket. Parking is available at both venues.</div>
+              <div className="lp-wear rv" style={{ transitionDelay: ".3s" }}><span className="small">Dress code</span><b>Barong Tagalog, formal gown</b></div>
+            </div>
+            <div className="rv" style={{ transitionDelay: ".2s" }}>
+              <div className="lp-venue">
+                <h3>Our Lady of Lourdes Parish</h3>
+                <div className="where">Ceremony, 3:00 pm</div>
+                <p>Silang Crossing East, Tagaytay City.</p>
+                <a href="https://maps.google.com/?q=Our+Lady+of+Lourdes+Parish+Tagaytay" target="_blank" rel="noopener noreferrer">Open in Maps</a>
+              </div>
+              <div className="lp-venue">
+                <h3>Antonio's</h3>
+                <div className="where">Reception, from 5:00 pm</div>
+                <p>Purok 138, Barangay Neogan, Tagaytay City.</p>
+                <a href="https://maps.google.com/?q=Antonio%27s+Restaurant+Tagaytay" target="_blank" rel="noopener noreferrer">Open in Maps</a>
+              </div>
+            </div>
           </div>
         </div>
-        <div style={{ borderRadius: 8, textAlign: "left", background: "#fff", boxShadow: "0 4px 20px rgba(46,37,32,.07)", overflow: "hidden", border: "1px solid #EDE7D9" }}>
-          <div style={{ height: 4, background: "linear-gradient(to right, #7A9EAD, #8AAEBA)" }} />
-          <div style={{ padding: "22px 26px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}><span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase", fontWeight: 600 }}>5:00 PM</span><div style={{ width: 1, height: 12, background: "#E0D8D0" }} /><span style={{ fontSize: 9, letterSpacing: 3, color: "#7A9EAD", textTransform: "uppercase" }}>Cocktails &amp; Dinner</span></div>
-            <p className="sf" style={{ fontSize: 24, fontWeight: 400, color: "#2E2520", marginBottom: 4 }}>Antonio's Restaurant</p>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><p style={{ fontSize: 12, color: "#9A8E88" }}>Tagaytay City, Cavite</p><a href="https://maps.google.com/?q=Antonio%27s+Restaurant+Tagaytay" target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, letterSpacing: 2, color: "#7A9EAD", textTransform: "uppercase", textDecoration: "none", borderBottom: "1px solid rgba(122,158,173,.3)" }}>Get Directions ↗</a></div>
+      </section>
+
+      {/* The two of us */}
+      <section className="lp-sec light" id="us">
+        <div className="wrap">
+          <div className="small rv">Our story</div>
+          <h2 className="rv" style={{ transitionDelay: ".1s" }}>The <em>two</em> of us</h2>
+          <div className="lp-people" style={{ marginTop: 0 }}>
+            <div className="lp-person rv">
+              <div className="lp-frame" style={{ aspectRatio: "4/5", marginBottom: 18 }}><img src={PHOTOS.chicco} alt="Chicco" loading="lazy" /></div>
+              <h3>Chicco</h3><div className="who">Manuel Angelo Gomez, the groom</div>
+              <p>A few lines about Chicco go here: what he's like at a table, what he cooks on a Sunday, what makes him laugh.</p>
+            </div>
+            <div className="lp-person rv" style={{ transitionDelay: ".15s" }}>
+              <div className="lp-frame" style={{ aspectRatio: "4/5", marginBottom: 18 }}><img src={PHOTOS.michelle} alt="Michelle" loading="lazy" /></div>
+              <h3>Michelle</h3><div className="who">Michelle Cua, the bride</div>
+              <p>A few lines about Michelle: her warmth, the things she can't stop reading, the smile everyone mentions.</p>
+            </div>
+          </div>
+          <div className="lp-frame rv" style={{ aspectRatio: "3/2", marginTop: 36 }}><img src={PHOTOS.laughbw} alt="Chicco and Michelle laughing together" loading="lazy" style={{ objectPosition: "center 30%" }} /></div>
+          <div className="lp-hash rv">
+            <div><div className="small">Share the day</div><div className="h tag">{HASHTAG}</div></div>
+            <p>Tag your photos and stories so we can find them all afterwards. Lulu the dog will be reviewing every one.</p>
           </div>
         </div>
-        {divider}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(196,150,122,.10)", border: "1px solid rgba(196,150,122,.3)", borderRadius: 4, padding: "12px 28px" }}>
-          <span style={{ fontSize: 9, letterSpacing: 4, color: "#C4967A", textTransform: "uppercase" }}>Dress Code</span>
-          <div style={{ width: 1, height: 14, background: "#C4967A55" }} />
-          <span className="sf" style={{ fontSize: 17, color: "#2E2520", fontStyle: "italic" }}>Barong Tagalog / Formal Gown</span>
+      </section>
+
+      {/* Gallery strip */}
+      <section className="lp-sec dark" style={{ paddingLeft: 0, paddingRight: 0 }}>
+        <div className="wrap"><div className="small rv">Before the big day</div><h2 className="rv" style={{ transitionDelay: ".1s" }}>A few from the <em>prenup</em></h2></div>
+        <div className="lp-strip">
+          <div className="lp-frame wide"><img src={PHOTOS.bridge} alt="" loading="lazy" /></div>
+          <div className="lp-frame"><img src={PHOTOS.standing} alt="" loading="lazy" /></div>
+          <div className="lp-frame"><img src={PHOTOS.window} alt="" loading="lazy" /></div>
+          <div className="lp-frame wide"><img src={PHOTOS.house} alt="" loading="lazy" /></div>
+          <div className="lp-frame"><img src={PHOTOS.dinner} alt="" loading="lazy" /></div>
+          <div className="lp-frame"><img src={PHOTOS.lanai} alt="" loading="lazy" /></div>
         </div>
-      </div>
-      <div style={{ background: "linear-gradient(135deg, #EDE7D9, #E4DDD2)", padding: "80px 24px" }}>
-        <div style={{ maxWidth: 440, margin: "0 auto", textAlign: "center" }}>
-          <SectionLabel>Kindly Reply</SectionLabel>
-          <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 14 }}>Will You Join Us?</h2>
-          <p style={{ fontSize: 13, color: "#9A8E88", fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.9, marginBottom: 40 }}>Please let us know by July 2026 so we can plan accordingly. We'd love to celebrate with you.</p>
+        <div className="wrap"><p style={{ fontSize: 13, opacity: .6, marginTop: 18 }}>Swipe for more. Photos from the day will be gathered here afterwards under {HASHTAG}.</p></div>
+      </section>
+
+      {/* RSVP */}
+      <section className="lp-sec sand light" id="rsvp">
+        <div className="wrap lp-there" style={{ alignItems: "center" }}>
+          <div>
+          <div className="small rv">Kindly reply</div>
+          <h2 className="rv" style={{ transitionDelay: ".1s" }}>Will you <em>join us?</em></h2>
           {rsvpSent ? (
-            <div style={{ borderRadius: 10, padding: "40px 28px", background: "#fff", border: "1px solid #C4E0D4", textAlign: "center" }}>
-              <FlowerLogo size={44} color="#7A9E8A" />
-              <p className="sf" style={{ fontSize: 26, color: "#2E2520", margin: "18px 0 8px" }}>Thank you, {rsvpName}!</p>
-              <p style={{ fontSize: 13, color: "#7A9E8A", lineHeight: 1.8 }}>{rsvpAttending ? "We're so excited to celebrate with you!" : "We'll miss you, but we understand."}</p>
+            <div className="lp-form">
+              <div className="bloom" style={{ marginBottom: 14 }}><FlowerLogo size={48} color="#2C4536" /></div>
+              <p className="serif" style={{ fontSize: 28 }}>Thank you, {rsvpName}.</p>
+              <p>{rsvpAttending ? "We can't wait to celebrate with you." : "We'll miss you, and we're grateful you let us know."}</p>
             </div>
           ) : (
-            <div style={{ borderRadius: 10, padding: "36px 32px", background: "#fff", border: "1px solid #EDE7D9", textAlign: "left" }}>
-              <div style={{ marginBottom: 22 }}><p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>Your Name</p><input value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }} placeholder="Full name" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E0D8D0", borderRadius: 0, background: "transparent", padding: "8px 0", fontSize: 15, color: "#2E2520", outline: "none", fontFamily: "'Jost', sans-serif" }} /></div>
-              <div style={{ marginBottom: 22 }}><p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 12 }}>Will you be attending?</p><div style={{ display: "flex", gap: 10 }}>{[{ label: "Joyfully Accepts", val: true, ac: "#7A9E8A" }, { label: "Regretfully Declines", val: false, ac: "#C47A7A" }].map(opt => (<button key={String(opt.val)} onClick={() => { setRsvpAttending(opt.val); setRsvpError(""); }} style={{ flex: 1, padding: "12px 8px", fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", border: "1.5px solid", borderRadius: 4, cursor: "pointer", transition: "all .2s", fontFamily: "'Jost', sans-serif", fontWeight: 500, background: rsvpAttending === opt.val ? opt.ac : "transparent", color: rsvpAttending === opt.val ? "#fff" : "#7A6E68", borderColor: rsvpAttending === opt.val ? opt.ac : "#D8CFC4" }}>{opt.label}</button>))}</div></div>
-              <div style={{ marginBottom: 26 }}><p style={{ fontSize: 9, letterSpacing: 4, color: "#9A8E88", textTransform: "uppercase", marginBottom: 8 }}>A note for the couple <span style={{ color: "#C4B8B0", textTransform: "none", letterSpacing: 0 }}>(optional)</span></p><textarea value={rsvpNote} onChange={e => setRsvpNote(e.target.value)} placeholder="Share a message, well wishes, or dietary notes..." rows={3} style={{ width: "100%", border: "1.5px solid #E0D8D0", borderRadius: 4, background: "transparent", padding: "10px 14px", fontSize: 13, color: "#2E2520", outline: "none", resize: "vertical", fontFamily: "Georgia, serif", fontStyle: "italic" }} /></div>
-              {rsvpError && <p style={{ fontSize: 12, color: "#C47A7A", marginBottom: 14 }}>{rsvpError}</p>}
-              <button onClick={handleRsvp} style={{ width: "100%", background: "#2E2520", color: "#F7F2EA", border: "none", padding: "15px", fontSize: 9, letterSpacing: 4, textTransform: "uppercase", borderRadius: 4, cursor: "pointer", fontFamily: "'Jost', sans-serif", fontWeight: 500 }}>Send My Reply</button>
+            <div className="lp-form rv" style={{ transitionDelay: ".2s" }}>
+              <p style={{ color: "var(--ink2)", fontSize: 15 }}>Please reply by 30 November 2026 so we can give the caterer a final count.</p>
+              <label htmlFor="rsvp-name">Your name</label>
+              <input id="rsvp-name" value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }} placeholder="First and last name" autoComplete="name" />
+              <label>Will you be there?</label>
+              <div className="lp-choice">
+                <button className={rsvpAttending === true ? "on" : ""} onClick={() => { setRsvpAttending(true); setRsvpError(""); }}>Joyfully accepts</button>
+                <button className={rsvpAttending === false ? "on" : ""} onClick={() => { setRsvpAttending(false); setRsvpError(""); }}>Regretfully declines</button>
+              </div>
+              <label htmlFor="rsvp-note">A note for us (optional)</label>
+              <textarea id="rsvp-note" value={rsvpNote} onChange={e => setRsvpNote(e.target.value)} placeholder="Well wishes, dietary needs, or the name of your plus-one" />
+              {rsvpError && <div className="lp-err">{rsvpError}</div>}
+              <button className="lp-btn" onClick={handleRsvp}>Send reply</button>
             </div>
           )}
+          </div>
+          <div className="lp-frame rv" style={{ aspectRatio: "4/3", transitionDelay: ".2s" }}><img src={PHOTOS.bouquet2} alt="Michelle laughing with a bouquet" loading="lazy" /></div>
         </div>
-      </div>
-      <div style={{ padding: "80px 24px", maxWidth: 720, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 52 }}><SectionLabel>Our Story</SectionLabel><h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520" }}>The People Behind the Love</h2></div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 24, marginBottom: 48 }}>
-          {[{side:"Groom",name:'Manuel Angelo "Chicco" Gomez',color:"#C4967A",grad:"#C4967A, #B8976A",tags:["☕ Coffee lover","🎵 Music","🐶 Dog dad"]},{side:"Bride",name:"Michelle [Surname]",color:"#7A9EAD",grad:"#7A9EAD, #8AAEBA",tags:["🌸 Flowers","📚 Reader","🍜 Foodie"]}].map(({side,name,color,grad,tags}) => (
-            <div key={side} style={{ flex: "1 1 260px", background: "#fff", borderRadius: 10, overflow: "hidden", border: "1px solid #EDE7D9" }}>
-              <div style={{ height: 8, background: `linear-gradient(to right, ${grad})` }} />
-              <div style={{ padding: 28 }}>
-                <div style={{ width: "100%", aspectRatio: "4/3", background: "linear-gradient(135deg, #EDE7D9, #E0D6C8)", borderRadius: 6, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed #C4B8AC" }}><div style={{ textAlign: "center" }}><div style={{ fontSize: 28, marginBottom: 6, opacity: 0.4 }}>📷</div><p style={{ fontSize: 10, letterSpacing: 2, color: "#B8A898", textTransform: "uppercase" }}>Photo coming soon</p></div></div>
-                <p style={{ fontSize: 9, letterSpacing: 5, color, textTransform: "uppercase", marginBottom: 8 }}>The {side}</p>
-                <h3 className="sf" style={{ fontSize: 26, fontWeight: 300, color: "#2E2520", marginBottom: 12 }}>{name}</h3>
-                <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 6 }}>{tags.map(t => <span key={t} style={{ fontSize: 10, padding: "4px 10px", background: color+"18", border: `1px solid ${color}33`, borderRadius: 20, color }}>{t}</span>)}</div>
+      </section>
+
+      {/* Quiz */}
+      <section className="lp-sec dark" id="quiz">
+        <div className="wrap">
+          <div className="small rv">Before you come</div>
+          <h2 className="rv" style={{ transitionDelay: ".1s" }}>How well do you <em>know us?</em></h2>
+          <div className="lp-quiz rv" style={{ transitionDelay: ".2s" }}>
+            {quizDone ? (
+              <div>
+                <p className="q">{quizScore >= 4 ? "You really do know us." : quizScore >= 2 ? "Not bad at all." : "We'll fill you in at the wedding."}</p>
+                <p style={{ opacity: .7, fontSize: 14 }}>{quizScore} of {quiz.length} correct</p>
+                <button className="lp-btn amber" onClick={() => { setQuizIdx(0); setQuizAns(null); setQuizScore(0); setQuizDone(false); }}>Play again</button>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{ background: "linear-gradient(135deg, #2E2520, #3E342E)", padding: "80px 24px", textAlign: "center" }}>
-        <SectionLabel>Prenuptial</SectionLabel>
-        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#F7F2EA", marginBottom: 12 }}>Before the Big Day</h2>
-        <p style={{ fontSize: 13, color: "#9A8E88", marginBottom: 48 }}>Photos coming soon</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", maxWidth: 720, margin: "0 auto" }}>
-          {[1,2,3,4,5,6].map(i => (<div key={i} style={{ flex: "1 1 180px", maxWidth: 220, aspectRatio: "3/4", background: "rgba(255,255,255,.04)", borderRadius: 6, border: "1px dashed rgba(196,150,122,.25)", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ fontSize: 9, color: "rgba(196,150,122,.4)", letterSpacing: 2, textTransform: "uppercase" }}>Soon</p></div>))}
-        </div>
-      </div>
-      <div style={{ padding: "80px 24px", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
-        <SectionLabel>How Well Do You Know Us?</SectionLabel>
-        <h2 className="sf" style={{ fontSize: 42, fontWeight: 300, color: "#2E2520", marginBottom: 8 }}>The Couple Quiz</h2>
-        <div style={{ background: "#fff", borderRadius: 10, padding: "32px 28px", border: "1px solid #EDE7D9", textAlign: "left" }}>
-          {quizDone ? (
-            <div style={{ textAlign: "center" }}><FlowerLogo size={44} color={quizScore >= 4 ? "#7A9E8A" : quizScore >= 2 ? "#C4967A" : "#C47A7A"} /><p className="sf" style={{ fontSize: 28, color: "#2E2520", margin: "16px 0 8px" }}>{quizScore >= 4 ? "You really know us!" : quizScore >= 2 ? "Not bad!" : "We'll catch you up at the wedding!"}</p><p style={{ fontSize: 14, color: "#9A8E88" }}>You got <strong>{quizScore}/{quiz.length}</strong> correct</p><button onClick={() => { setQuizIdx(0); setQuizAns(null); setQuizScore(0); setQuizDone(false); }} style={{ marginTop: 20, background: "#C4967A", color: "#fff", border: "none", padding: "10px 28px", borderRadius: 4, fontSize: 10, letterSpacing: 3, textTransform: "uppercase", cursor: "pointer", fontFamily: "'Jost', sans-serif" }}>Try Again</button></div>
-          ) : (
-            <>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}><span style={{ fontSize: 9, letterSpacing: 3, color: "#C4967A", textTransform: "uppercase" }}>Question {quizIdx + 1} of {quiz.length}</span><span style={{ fontSize: 10, color: "#9A8E88" }}>{quizScore} pts</span></div>
-              <div style={{ height: 3, background: "#EDE7D9", borderRadius: 2, marginBottom: 24 }}><div style={{ height: "100%", width: `${(quizIdx / quiz.length) * 100}%`, background: "linear-gradient(to right, #C4967A, #B8976A)", borderRadius: 2 }} /></div>
-              <p className="sf" style={{ fontSize: 20, color: "#2E2520", marginBottom: 24, lineHeight: 1.5 }}>{quiz[quizIdx].q}</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            ) : (
+              <div>
+                <div className="meta"><span>Question {quizIdx + 1} of {quiz.length}</span><span>{quizScore} right</span></div>
+                <div className="bar"><i style={{ width: `${quizIdx / quiz.length * 100}%` }} /></div>
+                <p className="q">{quiz[quizIdx].q}</p>
                 {quiz[quizIdx].opts.map((opt, i) => {
-                  let bg = "transparent", border = "#D8CFC4", color = "#2E2520";
-                  if (quizAns !== null) { if (i === quiz[quizIdx].ans) { bg = "rgba(122,158,138,.15)"; border = "#7A9E8A"; color = "#4A7A5A"; } else if (i === quizAns) { bg = "rgba(196,122,122,.10)"; border = "#C47A7A"; color = "#8A4A4A"; } }
-                  return (<button key={i} onClick={() => handleQuizAns(i)} style={{ padding: "12px 16px", textAlign: "left", background: bg, border: `1px solid ${border}`, borderRadius: 6, cursor: quizAns !== null ? "default" : "pointer", color, fontSize: 13, fontFamily: "'Jost', sans-serif" }}><span style={{ fontSize: 10, color: "#C4B8AC", marginRight: 10 }}>{String.fromCharCode(65+i)}.</span>{opt}</button>);
+                  let cls = "lp-opt";
+                  if (quizAns !== null) { if (i === quiz[quizIdx].ans) cls += " right"; else if (i === quizAns) cls += " wrong"; }
+                  return <button key={i} className={cls} onClick={() => handleQuizAns(i)} disabled={quizAns !== null}>{opt}</button>;
                 })}
+                {quizAns !== null && <button className="lp-btn amber" onClick={nextQuiz}>{quizIdx + 1 >= quiz.length ? "See my score" : "Next question"}</button>}
               </div>
-              {quizAns !== null && <button onClick={nextQuiz} style={{ marginTop: 20, width: "100%", background: "#2E2520", color: "#F7F2EA", border: "none", padding: "12px", fontSize: 10, letterSpacing: 3, textTransform: "uppercase", borderRadius: 4, cursor: "pointer", fontFamily: "'Jost', sans-serif" }}>{quizIdx + 1 >= quiz.length ? "See Results" : "Next Question →"}</button>}
-            </>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-      <div style={{ padding: "48px 24px", textAlign: "center", background: "#F7F2EA", borderTop: "1px solid #E8DDD4" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 20 }}><div style={{ height: 1, width: 60, background: "#D8CFC4" }} /><FlowerLogo size={20} color="#C4967A" /><div style={{ height: 1, width: 60, background: "#D8CFC4" }} /></div>
-        <p className="sf" style={{ fontSize: 22, fontWeight: 300, color: "#2E2520", marginBottom: 6 }}>Chicco &amp; Michelle</p>
-        <p style={{ fontSize: 10, letterSpacing: 3, color: "#B8A898", textTransform: "uppercase" }}>January 15, 2027 · Tagaytay</p>
-      </div>
+      </section>
+
+      <footer className="lp-foot">
+        <div className="wrap">
+          <FlowerLogo size={30} color="#D9A55A" />
+          <p className="big">Chicco <em>&amp;</em> Michelle</p>
+          <div className="tag">{HASHTAG}</div>
+          <p>Friday, 15 January 2027. Ceremony at three, Our Lady of Lourdes. Reception from five, Antonio's, Tagaytay.</p>
+          <p>Questions? Message either of us, or Ernest at Bespoke Manila, 0917 521 5447.</p>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -691,7 +957,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget, setBudget, events, setE
         const wb = XLSX.read(ev.target.result, { type: "array", cellDates: true });
         const res = importFromExcel(wb, { suppliers, budget, events, totalBudget });
         const warn = res.errors.length ? `\n\nWarnings:\n${res.errors.join("\n")}` : "";
-        if (!window.confirm(`Import from Excel?\n\n${res.summary}\n\nThis replaces suppliers, payments, crew meals, OOT fees, budget categories and payment-due events. Guests, attachments and non-payment events are kept.${warn}`)) { setImporting(false); return; }
+        if (!window.confirm(`Import from Excel?\n\n${res.summary}\n\nThis replaces suppliers, payments, crew meals, OOT fees, budget categories, payment-due events and deadlines. Guests, attachments and events you added by hand are kept.${warn}`)) { setImporting(false); return; }
         setSuppliers(res.suppliers); setBudget(res.budget); setEvents(res.events); setTotalBudget(res.totalBudget);
         setLastImport(Date.now());
         setBulkResult(`Imported from Excel — ${res.summary}`);
@@ -786,7 +1052,7 @@ function SuppliersTab({ suppliers, setSuppliers, budget, setBudget, events, setE
         <Btn v="ghost" onClick={() => { setForm(blankForm()); setSel(null); setModal("form"); }}>+ Add</Btn>
       </div>
       <div style={{ fontSize: 11, color: "var(--m)", marginBottom: 12, padding: "8px 12px", background: "var(--l)", borderRadius: 6 }}>
-        <strong style={{ color: "var(--ink)" }}>Excel is the source of truth.</strong> Log payments in <em>Wedding Budget Planner.xlsx</em> (PaymentSchedule tab) and crew/OOT in VendorList, then Import Excel here.
+        <strong style={{ color: "var(--ink)" }}>Excel is the source of truth.</strong> Log payments in <em>Wedding Budget Planner.xlsx</em> (PaymentSchedule tab) crew/OOT in VendorList, and tasks in Deadlines, then Import Excel here.
         {lastImport ? ` Last import: ${new Date(lastImport).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" })}.` : " Not yet imported."}
       </div>
       {bulkResult && <div style={{ fontSize: 12, color: "var(--su)", marginBottom: 10, padding: "8px 12px", background: "rgba(122,158,138,.1)", borderRadius: 6 }}>{bulkResult} <button onClick={() => setBulkResult(null)} style={{ background: "none", border: "none", color: "var(--m)", cursor: "pointer", marginLeft: 8 }}>×</button></div>}
@@ -910,7 +1176,7 @@ function CalendarTab({ events, setEvents }) {
   const save = () => { const e = { ...form, id: sel?.id || Date.now(), amount: num(form.amount) }; setEvents(p => sel ? p.map(x => x.id === e.id ? e : x) : [...p, e]); setModal(false); };
   const downloadTemplate = () => { downloadCSV("events_template.csv", ["title","date","type","amount","notes"], [["Bridal Gown Fitting #2","2026-04-15","Fitting","0",""]]); };
   const handleBulkFile = e => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = ev => { const rows = parseCSV(ev.target.result); const base = Date.now(); const added = rows.filter(r => r.title && r.date).map((r, idx) => ({ id: base + idx, title: r.title, date: r.date, type: ETYPES.includes(r.type) ? r.type : "Meeting", amount: num(r.amount), notes: r.notes || "" })); setEvents(p => [...p, ...added]); setBulkResult(`${added.length} event(s) imported.`); e.target.value = ""; }; reader.readAsText(file); };
-  const upcoming = [...events].filter(e => e.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
+  const upcoming = [...events].filter(e => e.date >= todayStr && !e.done).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10);
   const cells = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   return (
     <div className="fade">
@@ -926,7 +1192,7 @@ function CalendarTab({ events, setEvents }) {
             {cells.map((day, idx) => {
               if (day === null) return <div key={"b"+idx} />;
               const dateStr = toISO(year, month, day); const dayEvs = eventMap[dateStr] || []; const isToday = dateStr === todayStr;
-              return (<div key={dateStr} className={"cal-day" + (isToday ? " today" : "")} onClick={() => openAdd(dateStr)}><div style={{ fontSize: 11, fontWeight: isToday ? 700 : 400, color: isToday ? "var(--r)" : "var(--ink)", marginBottom: 2 }}>{day}</div>{dayEvs.slice(0, 2).map(ev => (<div key={ev.id} onClick={e => openEdit(ev, e)} title={ev.title} style={{ fontSize: 8, background: EC[ev.type] || "#999", color: "#fff", borderRadius: 3, padding: "1px 4px", marginBottom: 1, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{ev.title}</div>))}{dayEvs.length > 2 && <div style={{ fontSize: 8, color: "var(--m)" }}>+{dayEvs.length - 2}</div>}</div>);
+              return (<div key={dateStr} className={"cal-day" + (isToday ? " today" : "")} onClick={() => openAdd(dateStr)}><div style={{ fontSize: 11, fontWeight: isToday ? 700 : 400, color: isToday ? "var(--r)" : "var(--ink)", marginBottom: 2 }}>{day}</div>{dayEvs.slice(0, 2).map(ev => (<div key={ev.id} onClick={e => openEdit(ev, e)} title={ev.title} style={{ fontSize: 8, background: EC[ev.type] || "#999", color: "#fff", borderRadius: 3, padding: "1px 4px", marginBottom: 1, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", opacity: ev.done ? 0.4 : 1, textDecoration: ev.done ? "line-through" : "none" }}>{ev.title}</div>))}{dayEvs.length > 2 && <div style={{ fontSize: 8, color: "var(--m)" }}>+{dayEvs.length - 2}</div>}</div>);
             })}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--l)" }}>{Object.entries(EC).map(([t, c]) => (<div key={t} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--m)" }}><div style={{ width: 8, height: 8, borderRadius: 2, background: c, flexShrink: 0 }} />{t}</div>))}</div>
@@ -955,6 +1221,12 @@ function CalendarTab({ events, setEvents }) {
             <Field label="Type"><select value={form.type || "Meeting"} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>{ETYPES.map(t => <option key={t}>{t}</option>)}</select></Field>
           </div>
           <Field label="Amount (₱)"><input type="number" value={form.amount || ""} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" /></Field>
+          {form.type === "Deadline" && (
+            <label className="toggle-box" style={{ marginBottom: 14 }} onClick={() => setForm(f => ({ ...f, done: !f.done }))}>
+              <input type="checkbox" checked={!!form.done} onChange={() => {}} style={{ accentColor: "var(--su)" }} /><span>Done{form.supplier ? ` · ${form.supplier}` : ""}</span>
+              <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--m)" }}>from Excel — also mark Done there</span>
+            </label>
+          )}
           <Field label="Notes"><textarea value={form.notes || ""} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ minHeight: 55, resize: "vertical" }} /></Field>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>{sel && <Btn v="danger" onClick={() => { delEvent(sel.id); setModal(false); }}>Delete</Btn>}<Btn v="ghost" onClick={() => setModal(false)}>Cancel</Btn><Btn onClick={save}>Save</Btn></div>
         </Modal>
@@ -1097,7 +1369,8 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
   const tD = suppliers.reduce((a,s)=>a+(s.total||0),0); const tP = suppliers.reduce((a,s)=>a+(s.paid||0),0);
   const conf = guests.filter(g=>g.rsvp==="Confirmed").length; const tB = totalBudget||budget.reduce((a,b)=>a+b.estimated,0);
   const tS = suppliers.reduce((a,s)=>a+(s.paid||0),0); const ts = todayISO();
-  const up = [...events].filter(e=>e.date>=ts).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  const up = [...events].filter(e=>e.date>=ts && !e.done && e.type!=="Deadline").sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  const dls = [...events].filter(e=>e.type==="Deadline" && !e.done).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8);
   const dl = Math.ceil((WEDDING-new Date())/86400000);
   const unpaid = suppliers.filter(s=>s.status!=="Fully Paid");
   return (
@@ -1133,6 +1406,24 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
               <div style={{ textAlign:"right" }}><div style={{ fontSize:13,color:"var(--r)",fontWeight:500 }}>{peso(s.total-(s.paid||0))}</div><Badge label={s.status} color={SC[s.status]} /></div>
             </div>
           ))}
+        </Card>
+        <Card style={{ gridColumn:"1/-1" }}>
+          <h3 className="sf" style={{ fontSize:19,fontWeight:400,marginBottom:12 }}>Deadlines</h3>
+          {dls.length===0 ? <p style={{ fontSize:13,color:"var(--m)",textAlign:"center",padding:14 }}>No open deadlines. Add a Deadlines tab to the Excel to track tasks here.</p> : (
+            <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:8 }}>
+              {dls.map(e => { const d = daysUntil(e.date); const c = d < 0 ? "var(--d)" : d <= 14 ? "var(--wa)" : "var(--su)"; return (
+                <div key={e.id} style={{ display:"flex",gap:10,alignItems:"center",padding:"8px 10px",background:"var(--l)",borderRadius:6,borderLeft:`3px solid ${c}` }}>
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ fontSize:13,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{e.title}</div>
+                    <div style={{ fontSize:11,color:"var(--m)" }}>{e.date}{e.supplier ? ` · ${e.supplier}` : ""}</div>
+                  </div>
+                  <div style={{ textAlign:"right",flexShrink:0 }}>
+                    <div style={{ fontSize:16,fontWeight:600,color:c,lineHeight:1 }}>{d < 0 ? Math.abs(d) : d}</div>
+                    <div style={{ fontSize:9,color:"var(--m)",textTransform:"uppercase",letterSpacing:1 }}>{d < 0 ? "days late" : d === 0 ? "today" : "days"}</div>
+                  </div>
+                </div>); })}
+            </div>
+          )}
         </Card>
         <Card style={{ gridColumn:"1/-1" }}>
           <h3 className="sf" style={{ fontSize:19,fontWeight:400,marginBottom:14 }}>OOT & Crew Meals Tracker</h3>
@@ -1181,6 +1472,157 @@ function OverviewTab({ suppliers, guests, budget, events, totalBudget }) {
   );
 }
 
+
+/* ─── Analysis tab ────────────────────────────────────────────────────────── */
+function AnalysisTab({ suppliers, budget, events, totalBudget }) {
+  const today = todayISO();
+  const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
+
+  /* Budget vs committed vs paid */
+  const byCat = useMemo(() => {
+    const m = {};
+    suppliers.forEach(s => { const c = s.category || "Others"; if (!m[c]) m[c] = { committed: 0, paid: 0, n: 0 }; m[c].committed += num(s.total); m[c].paid += num(s.paid); m[c].n++; });
+    return m;
+  }, [suppliers]);
+  const rows = budget.map(b => { const x = byCat[b.category] || { committed: 0, paid: 0, n: 0 }; return { ...b, ...x, variance: num(b.estimated) - x.committed }; });
+  const orphan = Object.keys(byCat).filter(c => !budget.some(b => b.category === c)).map(c => ({ id: "o-" + c, category: c, estimated: 0, ...byCat[c], variance: -byCat[c].committed }));
+  const all = [...rows, ...orphan];
+  const overs = all.filter(r => r.variance < 0).sort((a, b) => a.variance - b.variance);
+  const unders = all.filter(r => r.variance > 0 && r.committed > 0).sort((a, b) => b.variance - a.variance);
+  const tAlloc = sum(budget, b => num(b.estimated)), tCommit = sum(suppliers, s => num(s.total)), tPaid = sum(suppliers, s => num(s.paid));
+  const cap = num(totalBudget);
+
+  /* Payment schedule */
+  const pay = events.filter(e => e.type === "Payment Due");
+  const overdue = pay.filter(e => e.date < today).sort((a, b) => a.date.localeCompare(b.date));
+  const byMonth = useMemo(() => { const m = {}; pay.forEach(e => { const k = e.date.slice(0, 7); m[k] = (m[k] || 0) + num(e.amount); }); return Object.entries(m).sort(([a], [b]) => a.localeCompare(b)); }, [pay]);
+  const maxMonth = Math.max(1, ...byMonth.map(([, v]) => v));
+  const supplierOf = e => e.supplier || (e.title || "").split(" – ")[0];
+  const scheduled = {}; pay.forEach(e => { const k = supplierOf(e).toLowerCase(); scheduled[k] = (scheduled[k] || 0) + num(e.amount); });
+  const unscheduled = suppliers.map(s => ({ s, gap: (num(s.total) - num(s.paid)) - (scheduled[s.name.toLowerCase()] || 0) })).filter(x => x.gap > 0.5).sort((a, b) => b.gap - a.gap);
+  const tOutstanding = tCommit - tPaid, tScheduled = sum(pay, e => num(e.amount)), tUnscheduled = sum(unscheduled, x => x.gap);
+
+  /* Deadlines */
+  const dls = events.filter(e => e.type === "Deadline");
+  const dlOpen = dls.filter(e => !e.done).sort((a, b) => a.date.localeCompare(b.date));
+  const dlLate = dlOpen.filter(e => e.date < today), dlSoon = dlOpen.filter(e => e.date >= today && daysUntil(e.date) <= 30);
+
+  /* Wedding-day cash */
+  const onTop = suppliers.filter(s => !s.inContract && (s.hasCrew || s.hasOOT)).map(s => ({ name: s.name, what: [s.hasCrew && `crew meals${s.crewPax ? ` (${s.crewPax} pax)` : ""}`, s.hasOOT && "OOT"].filter(Boolean).join(" + "), amt: (s.hasCrew ? num(s.crewMeals) : 0) + (s.hasOOT ? num(s.ootFee) : 0) }));
+  const onDay = pay.filter(e => e.date === WEDDING_ISO).map(e => ({ name: supplierOf(e), what: e.title.split(" – ")[1] || "balance", amt: num(e.amount) }));
+  const dayCash = [...onDay, ...onTop];
+
+  const H = ({ children, sub }) => <div style={{ marginBottom: 12 }}><h3 className="sf" style={{ fontSize: 19, fontWeight: 400 }}>{children}</h3>{sub && <p style={{ fontSize: 11, color: "var(--m)" }}>{sub}</p>}</div>;
+  const Stat = ({ l, v, c, sub }) => <div style={{ background: "var(--l)", borderRadius: 8, padding: 12, textAlign: "center" }}><div style={{ fontSize: 9, color: "var(--m)", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{l}</div><div className="sf" style={{ fontSize: 22, color: c || "var(--ink)", fontWeight: 300 }}>{v}</div>{sub && <div style={{ fontSize: 10, color: "var(--m)" }}>{sub}</div>}</div>;
+
+  return (
+    <div className="fade">
+      {/* headline */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 14 }}>
+        <Stat l="Budget cap" v={cap ? peso(cap) : "—"} />
+        <Stat l="Allocated" v={peso(tAlloc)} c={cap && tAlloc > cap ? "var(--d)" : "var(--ink)"} sub={cap ? `${Math.round(tAlloc / cap * 100)}% of cap` : ""} />
+        <Stat l="Committed" v={peso(tCommit)} c={tCommit > tAlloc ? "var(--d)" : "var(--b)"} sub={`${tCommit > tAlloc ? "over" : "under"} allocation by ${peso(Math.abs(tAlloc - tCommit))}`} />
+        <Stat l="Paid" v={peso(tPaid)} c="var(--su)" sub={`${tCommit ? Math.round(tPaid / tCommit * 100) : 0}% of committed`} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        {/* over budget */}
+        <Card>
+          <H sub="Contract totals vs your allocation. Red rows are already committed beyond budget.">Over Budget</H>
+          {overs.length === 0 ? <p style={{ fontSize: 13, color: "var(--su)", textAlign: "center", padding: 14 }}>Nothing over allocation.</p> : overs.map(r => (
+            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "rgba(196,122,122,.10)", borderRadius: 6, marginBottom: 6, borderLeft: "3px solid var(--d)" }}>
+              <div><div style={{ fontSize: 13, fontWeight: 500 }}>{r.category}</div><div style={{ fontSize: 11, color: "var(--m)" }}>{peso(r.committed)} committed vs {peso(r.estimated)} allocated{r.estimated === 0 ? " (no budget line)" : ""}</div></div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--d)" }}>+{peso(-r.variance)}</div>
+            </div>
+          ))}
+          {overs.length > 0 && <div style={{ fontSize: 12, marginTop: 8, textAlign: "right", color: "var(--d)", fontWeight: 500 }}>Total overrun {peso(sum(overs, r => -r.variance))}</div>}
+        </Card>
+        {/* headroom */}
+        <Card>
+          <H sub="Where allocation exceeds what's been committed.">Headroom</H>
+          {unders.slice(0, 8).map(r => (
+            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: "var(--l)", borderRadius: 6, marginBottom: 4 }}>
+              <div style={{ fontSize: 13 }}>{r.category}</div><div style={{ fontSize: 13, fontWeight: 500, color: "var(--su)" }}>{peso(r.variance)}</div>
+            </div>
+          ))}
+          {unders.length > 8 && <div style={{ fontSize: 11, color: "var(--m)", marginTop: 6 }}>+{unders.length - 8} more with headroom · total {peso(sum(unders, r => r.variance))}</div>}
+        </Card>
+      </div>
+
+      {/* full category table */}
+      <Card style={{ padding: 0, overflow: "auto", marginBottom: 14 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 640 }}>
+          <thead><tr style={{ background: "var(--l)" }}>{["Category", "Allocated", "Committed", "Paid", "Variance", ""].map(h => <th key={h} style={{ padding: "10px 12px", textAlign: h === "Category" ? "left" : "right", fontSize: 10, letterSpacing: 1.5, color: "var(--m)", textTransform: "uppercase", fontWeight: 500, whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+          <tbody>
+            {[...all].sort((a, b) => a.variance - b.variance).map((r, i) => {
+              const pct = r.estimated > 0 ? Math.min(100, r.committed / r.estimated * 100) : (r.committed > 0 ? 100 : 0);
+              return (<tr key={r.id} style={{ borderTop: "1px solid var(--l)", background: i % 2 === 0 ? "var(--wh)" : "var(--cr)" }}>
+                <td style={{ padding: "9px 12px", fontWeight: 500 }}>{r.category}<span style={{ color: "var(--m)", fontWeight: 400, fontSize: 11 }}>{r.n ? ` · ${r.n}` : ""}</span></td>
+                <td style={{ padding: "9px 12px", textAlign: "right" }}>{peso(r.estimated)}</td>
+                <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--b)" }}>{peso(r.committed)}</td>
+                <td style={{ padding: "9px 12px", textAlign: "right", color: "var(--su)" }}>{peso(r.paid)}</td>
+                <td style={{ padding: "9px 12px", textAlign: "right", fontWeight: 600, color: r.variance < 0 ? "var(--d)" : "var(--su)" }}>{r.variance < 0 ? "−" : "+"}{peso(Math.abs(r.variance))}</td>
+                <td style={{ padding: "9px 12px", minWidth: 90 }}><div style={{ height: 5, background: "var(--l)", borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: `${pct}%`, background: r.variance < 0 ? "var(--d)" : pct > 85 ? "var(--wa)" : "var(--r)" }} /></div></td>
+              </tr>);
+            })}
+          </tbody>
+        </table>
+      </Card>
+
+      {/* cash flow */}
+      <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 14, marginBottom: 14 }}>
+        <Card>
+          <H sub={`${peso(tOutstanding)} outstanding · ${peso(tScheduled)} scheduled · ${peso(tUnscheduled)} not yet dated`}>Cash Needed by Month</H>
+          {byMonth.length === 0 ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 14 }}>No pending payments dated.</p> : (() => { let cum = 0; return byMonth.map(([k, v]) => { cum += v; const late = k < today.slice(0, 7); return (
+            <div key={k} style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                <span style={{ fontWeight: 500, color: late ? "var(--d)" : "var(--ink)" }}>{monthLabel(k)}{late ? " · overdue" : ""}</span>
+                <span><strong>{peso(v)}</strong> <span style={{ color: "var(--m)", fontSize: 11 }}>· cum {peso(cum)}</span></span>
+              </div>
+              <div style={{ height: 10, background: "var(--l)", borderRadius: 5, overflow: "hidden" }}><div style={{ height: "100%", width: `${v / maxMonth * 100}%`, background: late ? "var(--d)" : "var(--r)", borderRadius: 5 }} /></div>
+            </div>); }); })()}
+          {tUnscheduled > 0 && <p style={{ fontSize: 11, color: "var(--wa)", marginTop: 8 }}>⚠ {peso(tUnscheduled)} of balances have no due date in Excel and are not in these bars.</p>}
+        </Card>
+        <Card>
+          <H sub="Pending rows past their due date — pay, or update the date in Excel.">Overdue Payments</H>
+          {overdue.length === 0 ? <p style={{ fontSize: 13, color: "var(--su)", textAlign: "center", padding: 14 }}>Nothing overdue.</p> : overdue.map(e => (
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", padding: "7px 10px", background: "rgba(196,122,122,.10)", borderRadius: 6, marginBottom: 5 }}>
+              <div><div style={{ fontSize: 13, fontWeight: 500 }}>{supplierOf(e)}</div><div style={{ fontSize: 11, color: "var(--m)" }}>{e.date} · {Math.abs(daysUntil(e.date))} days late</div></div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--d)" }}>{peso(e.amount)}</div>
+            </div>
+          ))}
+          {overdue.length > 0 && <div style={{ fontSize: 12, textAlign: "right", color: "var(--d)", fontWeight: 500, marginTop: 6 }}>{peso(sum(overdue, e => num(e.amount)))}</div>}
+          {unscheduled.length > 0 && <>
+            <div style={{ fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--m)", margin: "14px 0 6px" }}>Balance with no due date</div>
+            {unscheduled.map(({ s, gap }) => <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "5px 10px", background: "var(--l)", borderRadius: 5, marginBottom: 3 }}><span>{s.name}</span><span style={{ color: "var(--wa)", fontWeight: 500 }}>{peso(gap)}</span></div>)}
+          </>}
+        </Card>
+      </div>
+
+      {/* deadlines + day cash */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <Card>
+          <H sub={`${dlOpen.length} open · ${dlLate.length} late · ${dlSoon.length} due within 30 days`}>Deadline Watch</H>
+          {dlOpen.length === 0 ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 14 }}>No deadlines loaded.</p> : [...dlLate, ...dlOpen.filter(e => e.date >= today)].slice(0, 12).map(e => { const d = daysUntil(e.date); const c = d < 0 ? "var(--d)" : d <= 14 ? "var(--wa)" : "var(--m)"; return (
+            <div key={e.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "6px 10px", background: d < 0 ? "rgba(196,122,122,.10)" : "var(--l)", borderRadius: 6, marginBottom: 4 }}>
+              <div style={{ width: 44, textAlign: "center", flexShrink: 0 }}><div style={{ fontSize: 15, fontWeight: 600, color: c, lineHeight: 1 }}>{Math.abs(d)}</div><div style={{ fontSize: 8, color: "var(--m)", textTransform: "uppercase" }}>{d < 0 ? "late" : "days"}</div></div>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</div><div style={{ fontSize: 10, color: "var(--m)" }}>{e.date}{e.supplier ? ` · ${e.supplier}` : ""}</div></div>
+            </div>); })}
+        </Card>
+        <Card>
+          <H sub="Balances dated on the wedding day plus crew meals / OOT that are on top of contracts.">Wedding-Day Cash Sheet</H>
+          {dayCash.length === 0 ? <p style={{ fontSize: 13, color: "var(--m)", textAlign: "center", padding: 14 }}>Nothing due on the day.</p> : dayCash.map((x, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 10px", background: "var(--l)", borderRadius: 6, marginBottom: 4, fontSize: 12 }}>
+              <span><strong>{x.name}</strong> <span style={{ color: "var(--m)" }}>· {x.what}</span></span><span style={{ fontWeight: 600 }}>{peso(x.amt)}</span>
+            </div>
+          ))}
+          <div style={{ borderTop: "1px solid var(--l)", marginTop: 8, paddingTop: 8, display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600 }}><span>Bring on the day</span><span style={{ color: "var(--r)" }}>{peso(sum(dayCash, x => x.amt))}</span></div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard({ onLogout }) {
   const [tab, setTab] = useState("overview");
   const [suppliers, setSuppliers] = useState(INIT_S);
@@ -1206,18 +1648,25 @@ function Dashboard({ onLogout }) {
     }).catch(() => { setLoadError(true); setLoading(false); initDone.current = true; });
   }, []);
 
+  const [saveErr, setSaveErr] = useState("");
+  const [retryTick, setRetryTick] = useState(0);
   useEffect(() => {
     if (!initDone.current) return;
     setSaved(false);
-    const t = setTimeout(() => { sbSave(suppliers, guests, budget, events, totalBudget, lastImport).then(() => setSaved(true)).catch(() => setSaved(true)); }, 700);
+    const t = setTimeout(() => {
+      sbSave(suppliers, guests, budget, events, totalBudget, lastImport)
+        .then(() => { setSaved(true); setSaveErr(""); })
+        .catch(err => { setSaved("error"); setSaveErr(err?.message || "unknown"); setTimeout(() => setRetryTick(n => n + 1), 15000); });
+    }, 700);
     return () => clearTimeout(t);
-  }, [suppliers, guests, budget, events, totalBudget, lastImport]);
+  }, [suppliers, guests, budget, events, totalBudget, lastImport, retryTick]);
 
   const tabs = [
     { id:"overview",  label:"Overview",  icon:"◈" },
     { id:"suppliers", label:"Suppliers", icon:"₱" },
     { id:"calendar",  label:"Calendar",  icon:"◷" },
     { id:"budget",    label:"Budget",    icon:"◉" },
+    { id:"analysis",  label:"Analysis",  icon:"◬" },
     { id:"guests",    label:"Guests",    icon:"◎" },
   ];
 
@@ -1241,7 +1690,7 @@ function Dashboard({ onLogout }) {
           {tabs.map(t=>(<button key={t.id} onClick={()=>setTab(t.id)} style={{ width:"100%",display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:7,border:"none",marginBottom:2,fontSize:12,fontFamily:"'Jost',sans-serif",transition:"all .15s",background:tab===t.id?"rgba(196,150,122,.15)":"transparent",color:tab===t.id?"var(--r)":"#8A7E78",borderLeft:tab===t.id?"2px solid var(--r)":"2px solid transparent" }}><span>{t.icon}</span>{t.label}</button>))}
         </nav>
         <div style={{ padding:"12px 10px",borderTop:"1px solid rgba(255,255,255,.07)" }}>
-          <div style={{ fontSize:10,color:"#6A5E58",marginBottom:3,paddingLeft:10 }}>{saved?"✓ Saved":"Saving…"}</div>
+          <div style={{ fontSize:10,color:saved==="error"?"var(--d)":"#6A5E58",marginBottom:3,paddingLeft:10 }} title={saveErr}>{saved===true?"✓ Saved":saved==="error"?"⚠ Not saved — retrying":"Saving…"}</div>
           {lastImport && <div style={{ fontSize:9,color:"#6A5E58",marginBottom:7,paddingLeft:10 }}>Excel: {new Date(lastImport).toLocaleDateString("en-PH",{month:"short",day:"numeric"})}</div>}
           <button onClick={onLogout} style={{ width:"100%",padding:"8px 11px",border:"none",borderRadius:7,background:"rgba(255,255,255,.04)",color:"#8A7E78",fontSize:11,cursor:"pointer",textAlign:"left",fontFamily:"'Jost',sans-serif" }}>← Lock</button>
         </div>
@@ -1250,7 +1699,8 @@ function Dashboard({ onLogout }) {
       {/* Main content */}
       <div className="dash-content" style={{ flex:1,padding:"22px",overflow:"auto" }}>
         <div style={{ maxWidth:1100,margin:"0 auto" }}>
-          {loadError&&(<div style={{ background:"rgba(196,122,122,.12)",border:"1px solid var(--d)",borderRadius:8,padding:"10px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ fontSize:12,color:"var(--d)" }}>⚠ Could not reach server — showing default data.</span><button onClick={()=>setLoadError(false)} style={{ background:"none",border:"none",color:"var(--d)",fontSize:18,cursor:"pointer",lineHeight:1 }}>×</button></div>)}
+          {loadError&&(<div style={{ background:"rgba(196,122,122,.12)",border:"1px solid var(--d)",borderRadius:8,padding:"10px 16px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12 }}><span style={{ fontSize:12,color:"var(--d)" }}>⚠ Could not reach the database — showing default data. If the Supabase project is paused, restore it at supabase.com, then reload before importing.</span><button onClick={()=>setLoadError(false)} style={{ background:"none",border:"none",color:"var(--d)",fontSize:18,cursor:"pointer",lineHeight:1 }}>×</button></div>)}
+          {saved==="error"&&(<div style={{ background:"rgba(196,122,122,.12)",border:"1px solid var(--d)",borderRadius:8,padding:"10px 16px",marginBottom:18,fontSize:12,color:"var(--d)" }}>⚠ Changes are NOT being saved ({saveErr}). Retrying automatically — do not close this page until it says Saved.</div>)}
           <div style={{ marginBottom:18 }}>
             <h1 className="sf" style={{ fontSize:28,fontWeight:300,color:"var(--ink)" }}>{tabs.find(t=>t.id===tab)?.label}</h1>
             <p style={{ fontSize:12,color:"var(--m)" }}>Chicco &amp; Michelle · January 15, 2027</p>
@@ -1260,6 +1710,7 @@ function Dashboard({ onLogout }) {
           {tab==="calendar"  && <CalendarTab  events={events} setEvents={setEvents} />}
           {tab==="budget"    && <BudgetTab    budget={budget} setBudget={setBudget} totalBudget={totalBudget} setTotalBudget={setTotalBudget} suppliers={suppliers} />}
           {tab==="guests"    && <GuestsTab    guests={guests} setGuests={setGuests} />}
+          {tab==="analysis"  && <AnalysisTab  suppliers={suppliers} budget={budget} events={events} totalBudget={totalBudget} />}
         </div>
       </div>
 
