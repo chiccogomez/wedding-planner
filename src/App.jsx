@@ -18,7 +18,7 @@ const sbLoad = () => Promise.race([
       sb.from("settings").select("*").eq("key", "totalBudget").single(),
     ]);
     const li = await sb.from("settings").select("*").eq("key", "lastImport").maybeSingle();
-    const firstErr = [s, g, e].find(r => r.error)?.error;
+    const firstErr = [s, g, b, e, tb].find(r => r.error && r.error.code !== "PGRST116")?.error;
     if (firstErr) throw new Error(firstErr.message);
     return {
       suppliers:   s.data?.map(r => r.data) || null,
@@ -110,9 +110,11 @@ const injectStyles = () => {
     .lp-hero .when{font-size:clamp(15px,1.6vw,19px);margin:0;max-width:none;}
     .lp-hero .when b{display:block;font-weight:600;font-size:1.05em;}
     .lp-hero .when .tag{color:var(--amber);display:block;margin-top:6px;}
+    .lp-hero .inf svg path{stroke-dasharray:1;stroke-dashoffset:1;animation:lp-draw 2.4s .6s ease-out forwards;}
     .lp-count{display:flex;gap:clamp(14px,2.4vw,28px);}
     .lp-count span{display:block;font-family:'Bodoni Moda',serif;font-size:clamp(30px,3.6vw,46px);line-height:1;color:#fff;}
     .lp-count small{display:block;font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.75;margin-top:6px;}
+    .lp-forever .inf svg{display:block;height:clamp(22px,2.6vw,32px);width:auto;transform:skewX(-14deg);}
     /* sections */
     .lp-sec{padding:clamp(64px,8vw,112px) 0;}
     .lp-sec.dark{background:var(--wood);color:var(--ivory);}
@@ -127,7 +129,8 @@ const injectStyles = () => {
     .lp-tl::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--amber);opacity:.7;}
     .lp-tl li{position:relative;padding:0 0 26px 30px;}
     .lp-tl li::before{content:"";position:absolute;left:-3px;top:13px;width:7px;height:7px;border-radius:50%;background:var(--amber);}
-    .lp-tl .t{font-family:'Bodoni Moda',serif;font-size:30px;line-height:1;color:var(--amber);display:inline-block;min-width:78px;}
+    .lp-tl .t{font-family:'Bodoni Moda',serif;font-size:30px;line-height:1;color:var(--amber);display:inline-block;min-width:96px;}
+    .lp-tl .t small{font-family:'Figtree',sans-serif;font-size:11px;letter-spacing:.12em;margin-left:4px;vertical-align:.35em;opacity:.8;}
     .lp-tl .w{display:inline;font-size:17px;font-weight:500;}
     .lp-tl .n{display:block;font-size:14px;opacity:.7;margin-top:2px;max-width:46ch;}
     .lp-frame{position:relative;overflow:hidden;background:var(--wood2);}
@@ -137,18 +140,44 @@ const injectStyles = () => {
     .lp-frame.wide{aspect-ratio:16/9;}
     .lp-frame .cap{position:absolute;left:14px;bottom:12px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#fff;opacity:.8;}
     /* getting there */
-    .lp-there{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:start;}
+    .lp-there{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:stretch;}
+    .lp-there>div:first-child{display:flex;flex-direction:column;}
+    .there-photo{flex:1;min-height:260px;}
+    .there-photo img{position:absolute;inset:0;}
+    @media(max-width:820px){.there-photo{aspect-ratio:4/3;flex:none;}}
     .lp-venue{padding:22px 0;border-top:1px solid var(--rule);}
     .lp-venue h3{font-size:28px;margin:0 0 2px;line-height:1.15;}
     .lp-venue .where{font-size:13px;color:var(--ink2);margin-bottom:8px;}
     .lp-venue p{font-size:14px;margin-bottom:8px;}
     .lp-note{border-left:2px solid var(--moss);padding:4px 0 4px 16px;font-size:14px;color:var(--ink2);margin-top:8px;max-width:56ch;}
-    .lp-wear{margin-top:28px;}
-    .lp-wear b{font-family:'Bodoni Moda',serif;font-weight:400;font-style:italic;font-size:26px;display:block;margin-top:4px;}
+    .lp-wear{display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:0;}
+    .lp-wear b{font-family:'Bodoni Moda',serif;font-weight:400;font-style:italic;font-size:17px;}
+    .lp-wear span{font-size:13px;}
+    .lp-wear .pair{white-space:nowrap;display:inline-flex;align-items:baseline;gap:8px;}
+    /* entourage */
+    .lp-ent-sec-wrap{position:relative;overflow:hidden;}
+    .lp-ent-bg{position:absolute;inset:0;background-size:cover;background-position:center 28%;opacity:.16;filter:grayscale(1) contrast(.9);}
+    .lp-ent-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--sand) 0%,rgba(231,224,209,.35) 30%,rgba(231,224,209,.35) 70%,var(--sand) 100%);}
+    .lp-ent{max-width:820px;margin:0 auto;text-align:center;font-size:15px;line-height:1.9;}
+    .lp-ent-title{font-family:'Bodoni Moda',serif;font-style:italic;font-size:22px;color:var(--forest);margin:0 0 6px;line-height:1.2;}
+    .lp-ent-div{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 30px;}
+    .lp-ent-div::before,.lp-ent-div::after{content:"";width:54px;height:1px;background:var(--moss);opacity:.5;}
+    .lp-ent-block{margin-bottom:34px;}
+    .lp-ent-pairs{display:grid;grid-template-columns:1fr 1fr;column-gap:28px;}
+    .lp-ent-pairs .r,.lp-ent-col.r{text-align:right;}
+    .lp-ent-pairs span:nth-child(even){text-align:left;}
+    .lp-ent-row{display:grid;grid-template-columns:1fr 1fr;column-gap:28px;margin-bottom:30px;align-items:start;}
+    .lp-ent-col{text-align:left;}
+    .lp-ent-sec{display:flex;justify-content:center;gap:clamp(24px,5vw,64px);flex-wrap:wrap;}
+    .lp-ent-sub{font-family:'Bodoni Moda',serif;font-style:italic;font-size:19px;color:var(--forest);margin-bottom:2px;}
+    @media(max-width:560px){.lp-ent{font-size:14px;}.lp-ent-pairs{grid-template-columns:1fr;}.lp-ent-pairs .r{text-align:center;}.lp-ent-pairs span:nth-child(even){text-align:center;margin-bottom:6px;}.lp-ent-row{grid-template-columns:1fr;}.lp-ent-col,.lp-ent-col.r{text-align:center;margin-bottom:22px;}}
     /* the two of us */
     .lp-us{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,2.5vw,28px);}
     .lp-us .lp-frame{aspect-ratio:4/5;}
     .lp-people{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,44px);margin-top:36px;}
+    .lp-trip{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,1.6vw,18px);}
+    .lp-trip .lp-frame{aspect-ratio:3/4;}
+    @media(max-width:820px){.lp-trip{grid-template-columns:repeat(3,1fr);gap:8px;}.lp-trip .lp-frame{aspect-ratio:2/3;}}
     .lp-person h3{font-size:30px;margin:0 0 2px;}
     .lp-person .who{color:var(--ink2);font-size:13px;margin-bottom:10px;}
     .lp-person p{font-size:15px;}
@@ -191,6 +220,9 @@ const injectStyles = () => {
     .lp-foot .big em{color:var(--amber);}
     .lp-foot .tag{font-size:clamp(18px,2.4vw,26px);color:var(--amber);margin:8px 0 22px;}
     .lp-foot p{margin:0 auto .6em;font-size:14px;opacity:.85;max-width:60ch;}
+    .lp-song{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;background:rgba(30,25,21,.9);color:var(--ivory);border:1px solid rgba(255,255,255,.2);padding:10px 16px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:999px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(6px);}
+    .lp-song .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);}
+    .lp-song[aria-pressed="true"] .dot{animation:lp-pulse 1.4s infinite;}
     @media(max-width:820px){
       .lp-day,.lp-there,.lp-us,.lp-people{grid-template-columns:1fr;}
       .lp-hero{min-height:92svh;}
@@ -577,6 +609,11 @@ function Countdown() {
     tick(); const id = setInterval(tick, 1000); return () => clearInterval(id);
   }, []);
   if (!t) return null;
+  if (WEDDING - Date.now() <= 0 || window.__FORCE_AFTER__) return (
+    <div className="lp-count lp-forever" aria-label="Married">
+      <div className="inf"><InfinityMark width={78} stroke={1.3} /></div>
+    </div>
+  );
   return (
     <div className="lp-count" aria-label="Countdown to the wedding">
       {[["days", t.d], ["hrs", t.h], ["min", t.m], ["sec", t.s]].map(([l, v]) => <div key={l}><span><i key={v}>{String(v).padStart(2, "0")}</i></span><small>{l}</small></div>)}
@@ -620,6 +657,12 @@ const ChurchSketch = ({ width = 400, color = "#C4967A" }) => (
   </svg>
 );
 
+const InfinityMark = ({ width = 120, color = "#D9A55A", stroke = 1.4 }) => (
+  <svg viewBox="0 0 120 56" width={width} height={width * 56 / 120} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" aria-hidden="true">
+    <path pathLength="1" d="M60 28 C 48 8, 8 8, 8 28 C 8 48, 48 48, 60 28 C 72 8, 112 8, 112 28 C 112 48, 72 48, 60 28 Z" />
+  </svg>
+);
+
 const FlowerLogo = ({ size = 80, color = "#C4967A" }) => (
   <svg viewBox="0 0 100 100" width={size} height={size} fill="none" stroke={color} strokeWidth="1.4">
     <circle pathLength="1" cx="50" cy="34" r="18" /><circle pathLength="1" cx="50" cy="66" r="18" />
@@ -628,10 +671,284 @@ const FlowerLogo = ({ size = 80, color = "#C4967A" }) => (
   </svg>
 );
 
-/* Photos live in public/photos/ (served by Cloudflare) */
-const PHOTOS = { hero: "/photos/hero.jpg", bouquet2: "/photos/bouquet2.jpg", kiss: "/photos/kiss.jpg", michelle: "/photos/michelle.jpg", chicco: "/photos/chicco.jpg", laughbw: "/photos/laughbw.jpg", field: "/photos/field.jpg", standing: "/photos/standing.jpg", bridge: "/photos/bridge.jpg", house: "/photos/house.jpg", dinner: "/photos/dinner.jpg", window: "/photos/window.jpg", lanai: "/photos/lanai.jpg" };
-const HASHTAG = "#naCuaNaSiChicco";
-const HERO_SHOTS = [{ src: PHOTOS.hero, pos: "center 32%", mobile: "48% 30%" }, { src: PHOTOS.bridge, pos: "center 60%", mobile: "70% 62%" }];
+/* ─── Site content: everything below is editable in public/site.json ─────── */
+const SITE_DEFAULTS = {
+  "hashtag": "#naCuaNaSiChicco",
+  "date": "Friday, 15 January 2027",
+  "venuesLine": "Our Lady of Lourdes and Antonio's, Tagaytay",
+  "hero": [
+    {
+      "file": "hero.jpg",
+      "desktop": "center 32%",
+      "mobile": "48% 30%"
+    },
+    {
+      "file": "bridge.jpg",
+      "desktop": "center 60%",
+      "mobile": "70% 62%"
+    }
+  ],
+  "heroVideo": "",
+  "dayHeading": "And it all begins\nwith",
+  "dayHeadingEm": "“I do.”",
+  "timeline": [
+    {
+      "time": "3:00",
+      "ampm": "PM",
+      "what": "Ceremony",
+      "note": "A little prayer, a few promises, then a solemn “I do.”"
+    },
+    {
+      "time": "4:30",
+      "ampm": "PM",
+      "what": "Photos at the Church",
+      "note": "Family, entourage, a few friends — plus a little proof we all looked this good."
+    },
+    {
+      "time": "5:00",
+      "ampm": "PM",
+      "what": "Cocktails at the Lanai",
+      "note": "Her favorite place, at his favorite time of day.\nGolden light, cool air, a little music — our first dance."
+    },
+    {
+      "time": "6:30",
+      "ampm": "PM",
+      "what": "Dinner",
+      "note": "Dinner is served. Stories are shared, glasses are raised."
+    },
+    {
+      "time": "9:00",
+      "ampm": "PM",
+      "what": "The Night Goes On",
+      "note": "The speeches are done. The band plays on. We settle into the night."
+    }
+  ],
+  "dayPhoto": "kiss.jpg",
+  "therePhoto": "house.jpg",
+  "therePhoto2": "wall.jpg",
+  "thereHeading": "Meet us in",
+  "thereHeadingEm": "Tagaytay",
+  "thereNote": "Just far enough from the city to slow things down — an afternoon away, a familiar favorite, and two places we’d love to share with you.",
+  "dressCode": {
+    "gentlemen": "Barong Tagalog",
+    "ladies": "Cocktail Attire",
+    "note": "Kindly avoid black or white dresses."
+  },
+  "venues": [
+    {
+      "name": "Our Lady of Lourdes Parish",
+      "when": "Ceremony, 3:00 PM",
+      "address": "Silang Crossing East, Tagaytay City",
+      "maps": "https://maps.google.com/?q=Our+Lady+of+Lourdes+Parish+Tagaytay"
+    },
+    {
+      "name": "Antonio’s",
+      "when": "Reception, from 5:00 PM",
+      "address": "Purok 138, Barangay Neogan, Tagaytay City",
+      "maps": "https://maps.google.com/?q=Antonio%27s+Restaurant+Tagaytay"
+    }
+  ],
+  "chicco": {
+    "photo": "chicco.jpg",
+    "name": "Chicco",
+    "who": "Manuel Angelo Gomez, the groom",
+    "blurb": "A few lines about Chicco go here: what he's like at a table, what he cooks on a Sunday, what makes him laugh."
+  },
+  "michelle": {
+    "photo": "michelle.jpg",
+    "name": "Michelle",
+    "who": "Michelle Cua, the bride",
+    "blurb": "A few lines about Michelle: her warmth, the things she can't stop reading, the smile everyone mentions."
+  },
+  "togetherPhotos": [
+    "laugh1.jpg",
+    "laugh2.jpg",
+    "laughbw.jpg"
+  ],
+  "hashtagBlurb": "Tag your photos and stories so we can find them all afterwards. Lulu the dog will be reviewing every one.",
+  "entourage": {
+    "bg": "ring.jpg",
+    "heading": "Standing with",
+    "headingEm": "us",
+    "parents": {
+      "groom": [
+        "Mr. Manuel A. Gomez",
+        "Mrs. Aida C. Gomez"
+      ],
+      "bride": [
+        "Mr. John T. Cua",
+        "Mrs. Lilian L. Cua"
+      ]
+    },
+    "principal": [
+      [
+        "Mr. Gerardo C. Ablaza, Jr.",
+        "Mrs. Ma. Lourdes L. Ablaza"
+      ],
+      [
+        "Mr. Clemente A. Aurelio",
+        "Mrs. Doris G. Aurelio"
+      ],
+      [
+        "Mr. Alfonso L. Salcedo, Jr.",
+        "Mrs. Clarabelle L. Salcedo"
+      ],
+      [
+        "Mr. Antonio R. Samson",
+        "Mrs. Lourdes K. Samson"
+      ],
+      [
+        "Mr. James D. Chuaunsu",
+        "Mrs. Alice D. Chuaunsu"
+      ],
+      [
+        "Mr. Jose C. Jose",
+        "Mrs. Adela P. Jose"
+      ],
+      [
+        "Mr. Alexander G. Tan",
+        "Mrs. Jocelyn E. Tan"
+      ]
+    ],
+    "groups": [
+      {
+        "left": {
+          "title": "Best Man",
+          "names": [
+            "Michelangelo K. Samson"
+          ]
+        },
+        "right": {
+          "title": "Maids of Honor",
+          "names": [
+            "Magdalene L. Ngo",
+            "Charlene C. Siason"
+          ]
+        }
+      },
+      {
+        "left": {
+          "title": "Groomsmen",
+          "names": [
+            "Michael Stephen G. Aurelio",
+            "Avelino P. Cruz III",
+            "Alberto B. Gomez, Jr.",
+            "Jaime Juan R. Paz III",
+            "Pablito C. Tolosa"
+          ]
+        },
+        "right": {
+          "title": "Bridesmaids",
+          "names": [
+            "Ana Carmela C. Gomez",
+            "Taskeen K. Lih",
+            "Catherine Anne G. Aurelio",
+            "Charmaine R. Go",
+            "Sheryl L. Ang"
+          ]
+        }
+      },
+      {
+        "left": {
+          "title": "Junior Groomsmen",
+          "names": [
+            "John Colin C. Cua",
+            "Kenzo Daniel C. Lin"
+          ]
+        },
+        "right": {
+          "title": "Junior Bridesmaids",
+          "names": [
+            "Lauren Isabelle C. Cua",
+            "Kayla Rizza C. Lin"
+          ]
+        }
+      }
+    ],
+    "secondary": [
+      {
+        "title": "Candle",
+        "names": [
+          "Wen-Szu Lin",
+          "Karen C. Lin"
+        ]
+      },
+      {
+        "title": "Veil",
+        "names": [
+          "Laurence L. Cua",
+          "Coleen C. Cua"
+        ]
+      },
+      {
+        "title": "Cord",
+        "names": [
+          "Julian L. Cua",
+          "Steffi G. Cua"
+        ]
+      }
+    ]
+  },
+  "video": {
+    "youtube": "",
+    "title": "",
+    "caption": ""
+  },
+  "gallery": [
+    {
+      "file": "bridge.jpg",
+      "wide": true
+    },
+    {
+      "file": "standing.jpg"
+    },
+    {
+      "file": "window.jpg"
+    },
+    {
+      "file": "house.jpg",
+      "wide": true
+    },
+    {
+      "file": "dinner.jpg"
+    },
+    {
+      "file": "lanai.jpg"
+    }
+  ],
+  "galleryNote": "Swipe for more. Photos from the day will be gathered here afterwards.",
+  "rsvpPhoto": "bouquet2.jpg",
+  "rsvpDeadline": "30 November 2026",
+  "song": {
+    "file": "",
+    "title": ""
+  },
+  "contact": "Questions? Message either of us, or Ernest at Bespoke Manila, 0917 521 5447.",
+  "spotify": {
+    "url": "https://open.spotify.com/playlist/0NtPuMtvDFj8pZfPxue9z2",
+    "title": "The soundtrack",
+    "caption": "Songs that got us here, and a few we'll be dancing to."
+  },
+  "albumUrl": "",
+  "albumNote": "Photo drop opens on the day."
+};
+const photoUrl = f => !f ? "" : (/^(https?:)?\/\//.test(f) || f.startsWith("data:")) ? f : (window.__PHOTO_MAP__?.[f] || `/photos/${f}`);
+function useSiteConfig() {
+  const [cfg, setCfg] = useState(window.__SITE__ ? { ...SITE_DEFAULTS, ...window.__SITE__ } : SITE_DEFAULTS);
+  useEffect(() => {
+    if (window.__SITE__) return;
+    fetch(`/site.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null).then(j => { if (j) setCfg({ ...SITE_DEFAULTS, ...j }); }).catch(() => {});
+  }, []);
+  /* chiccoandmichelle.com/photos → the album (printed on the QR cards) */
+  useEffect(() => {
+    if (!/^\/photos\/?$/.test(window.location.pathname)) return;
+    if (cfg.albumUrl) { window.location.replace(cfg.albumUrl); }
+    else if (cfg !== SITE_DEFAULTS || window.__SITE__) { window.history.replaceState(null, "", "/#share"); setTimeout(() => document.getElementById("share")?.scrollIntoView(), 300); }
+  }, [cfg]);
+  return cfg;
+}
+const spotifyEmbed = v => { if (!v) return null; const m = String(v).match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(playlist|album|track|artist)\/([A-Za-z0-9]+)/) || String(v).match(/spotify:(playlist|album|track|artist):([A-Za-z0-9]+)/); return m ? { type: m[1], id: m[2] } : null; };
+const ytId = v => { if (!v) return ""; const m = String(v).match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : (/^[\w-]{11}$/.test(v) ? v : ""); };
 
 /* reveal-on-scroll + scrollspy */
 function useReveal() {
@@ -660,16 +977,24 @@ function useParallax(ref, factor = .06) {
 }
 
 function Landing({ onEnter }) {
+  const cfg = useSiteConfig();
+  const HASHTAG = cfg.hashtag;
+  const HERO_SHOTS = (cfg.hero || []).map(h => ({ src: photoUrl(h.file), pos: h.desktop || "center", mobile: h.mobile || h.desktop || "center" }));
   const [adminClicks, setAdminClicks] = useState(0);
   const heroRef = useRef(null);
   useReveal(); useParallax(heroRef, .25);
-  const [heroIdx, setHeroIdx] = useState(() => Math.floor(Math.random() * HERO_SHOTS.length));
-  useEffect(() => { const id = setInterval(() => setHeroIdx(i => (i + 1) % HERO_SHOTS.length), 8000); return () => clearInterval(id); }, []);
+  const [heroIdx, setHeroIdx] = useState(() => Math.floor(Math.random() * 8));
+  useEffect(() => { if (HERO_SHOTS.length < 2) return; const id = setInterval(() => setHeroIdx(i => i + 1), 8000); return () => clearInterval(id); }, [HERO_SHOTS.length]);
+  const heroOn = HERO_SHOTS.length ? heroIdx % HERO_SHOTS.length : 0;
+  const yt = ytId(cfg.video?.youtube);
+  const [playing, setPlaying] = useState(false); const audioRef = useRef(null);
+  const toggleSong = () => { const a = audioRef.current; if (!a) return; if (a.paused) { a.play().then(() => setPlaying(true)).catch(() => {}); } else { a.pause(); setPlaying(false); } };
   const [rsvpName, setRsvpName] = useState("");
   const [rsvpAttending, setRsvpAttending] = useState(null);
   const [rsvpNote, setRsvpNote] = useState("");
   const [rsvpSent, setRsvpSent] = useState(false);
   const [rsvpError, setRsvpError] = useState("");
+  const [rsvpHp, setRsvpHp] = useState("");
   const [quizIdx, setQuizIdx] = useState(0);
   const [quizAns, setQuizAns] = useState(null);
   const [quizScore, setQuizScore] = useState(0);
@@ -679,8 +1004,9 @@ function Landing({ onEnter }) {
   const handleRsvp = async () => {
     if (!rsvpName.trim()) { setRsvpError("Add your name so we know who's replying."); return; }
     if (rsvpAttending === null) { setRsvpError("Let us know whether you can make it."); return; }
-    const entry = { id: Date.now(), name: rsvpName.trim(), attending: rsvpAttending, note: rsvpNote.trim(), submittedAt: new Date().toISOString() };
-    try { await sb.from("rsvps").insert({ id: entry.id, data: entry }); } catch (e) { /* keep the thank-you */ }
+    if (rsvpHp) { setRsvpSent(true); return; } /* honeypot filled → bot; pretend success */
+    const { error } = await sb.rpc("submit_rsvp", { p_name: rsvpName.trim(), p_attending: rsvpAttending, p_note: rsvpNote.trim() });
+    if (error) { setRsvpError("Something went wrong sending that. Please try again, or message us directly."); return; }
     setRsvpSent(true);
   };
   const quiz = [
@@ -698,7 +1024,9 @@ function Landing({ onEnter }) {
       {/* Hero: the bridge */}
       <header className="lp-hero">
         <div className="bgwrap" ref={heroRef}>
-          {HERO_SHOTS.map((s, i) => <div key={s.src} className={"bg" + (i === heroIdx ? " on" : "")} style={{ backgroundImage: `url(${s.src})`, "--pos": s.pos, "--posm": s.mobile }} />)}
+          {cfg.heroVideo
+            ? <video className="bg on" src={photoUrl(cfg.heroVideo)} autoPlay muted loop playsInline poster={HERO_SHOTS[0]?.src} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+            : HERO_SHOTS.map((s, i) => <div key={s.src} className={"bg" + (i === heroOn ? " on" : "")} style={{ backgroundImage: `url(${s.src})`, "--pos": s.pos, "--posm": s.mobile }} />)}
         </div>
         <div className="veil" />
         <div className="flower" onClick={handleLogoClick} aria-hidden="true"><FlowerLogo size={40} color="#FFFFFF" /></div>
@@ -706,7 +1034,7 @@ function Landing({ onEnter }) {
           <div className="small rise d1">Together with their families</div>
           <h1 className="names rise d2">Chicco<em>&amp;</em>Michelle</h1>
           <div className="row">
-            <p className="when rise d3"><b>Friday, 15 January 2027</b>Our Lady of Lourdes and Antonio's, Tagaytay<span className="tag">{HASHTAG}</span></p>
+            <p className="when rise d3"><b>{cfg.date}</b>{cfg.venuesLine}<span className="tag">{HASHTAG}</span></p>
             <div className="rise d4"><Countdown /></div>
           </div>
         </div>
@@ -717,43 +1045,44 @@ function Landing({ onEnter }) {
         <div className="wrap lp-day">
           <div>
             <div className="small rv">The day</div>
-            <h2 className="rv" style={{ transitionDelay: ".1s" }}>From the first hymn to the <em>last dance</em></h2>
+            <h2 className="rv" style={{ transitionDelay: ".1s" }}>{String(cfg.dayHeading || "").split("\n").map((l, i, arr) => <React.Fragment key={i}>{l}{i < arr.length - 1 && <br />}</React.Fragment>)} <em style={{ fontWeight: 600 }}>{cfg.dayHeadingEm}</em></h2>
             <ol className="lp-tl">
-              <li><span className="t">2:45</span><span className="w">Be seated</span><span className="n">Our Lady of Lourdes Parish. The doors close for the processional.</span></li>
-              <li><span className="t">3:00</span><span className="w">Ceremony</span><span className="n">A nuptial mass, about an hour and a quarter.</span></li>
-              <li><span className="t">4:30</span><span className="w">Photos on the church steps</span><span className="n">Then a ten-minute drive to Antonio's.</span></li>
-              <li><span className="t">5:00</span><span className="w">Cocktails on the lanai</span><span className="n">Drinks and live music while the sun goes down over the ridge.</span></li>
-              <li><span className="t">6:30</span><span className="w">Dinner and toasts</span><span className="n">In the main house.</span></li>
-              <li><span className="t">8:30</span><span className="w">Dancing</span><span className="n">The band plays until eleven. Wear shoes you can move in.</span></li>
+              {(cfg.timeline || []).map((t, i) => <li key={i}><span className="t">{t.time}{t.ampm && <small>{t.ampm}</small>}</span><span className="w">{t.what}</span>{t.note && <span className="n">{String(t.note).split("\n").map((l, j, arr) => <React.Fragment key={j}>{l}{j < arr.length - 1 && <br />}</React.Fragment>)}</span>}</li>)}
             </ol>
           </div>
-          <div className="lp-frame tall rv" style={{ transitionDelay: ".2s" }}><img src={PHOTOS.kiss} alt="Chicco kissing Michelle's hand at dinner" loading="lazy" /></div>
+          <div className="lp-frame tall rv" style={{ transitionDelay: ".2s" }}><img src={photoUrl(cfg.dayPhoto)} alt="" loading="lazy" /></div>
         </div>
       </section>
 
       {/* Getting there */}
       <section className="lp-sec sand light" id="there">
         <div className="wrap">
-          <div className="lp-frame wide rv" style={{ marginBottom: 44 }}><img src={PHOTOS.field} alt="Chicco and Michelle in a field with trees behind" loading="lazy" /></div>
+          <div className="lp-frame wide rv" style={{ marginBottom: 44 }}><img src={photoUrl(cfg.therePhoto)} alt="" loading="lazy" /></div>
           <div className="lp-there">
             <div>
               <div className="small rv">Getting there</div>
-              <h2 className="rv" style={{ transitionDelay: ".1s" }}>Up the ridge to <em>Tagaytay</em></h2>
-              <div className="lp-note rv" style={{ transitionDelay: ".2s" }}>Friday traffic out of Manila runs two to three hours, so leave by noon. It is noticeably cooler in the evening; bring a wrap or jacket. Parking is available at both venues.</div>
-              <div className="lp-wear rv" style={{ transitionDelay: ".3s" }}><span className="small">Dress code</span><b>Barong Tagalog, formal gown</b></div>
+              <h2 className="rv" style={{ transitionDelay: ".1s" }}>{cfg.thereHeading} <em>{cfg.thereHeadingEm}</em></h2>
+              <div className="lp-note rv" style={{ transitionDelay: ".2s" }}>{cfg.thereNote}</div>
+              {cfg.therePhoto2 && <div className="lp-frame rv there-photo" style={{ transitionDelay: ".3s", marginTop: 32 }}><img src={photoUrl(cfg.therePhoto2)} alt="" loading="lazy" /></div>}
             </div>
             <div className="rv" style={{ transitionDelay: ".2s" }}>
+              {(cfg.venues || []).map((v, i) => (
+                <div className="lp-venue" key={i}>
+                  <h3>{v.name}</h3>
+                  <div className="where">{v.when}</div>
+                  {v.address && <p>{v.address}</p>}
+                  {v.maps && <a href={v.maps} target="_blank" rel="noopener noreferrer">Open in Maps</a>}
+                </div>
+              ))}
               <div className="lp-venue">
-                <h3>Our Lady of Lourdes Parish</h3>
-                <div className="where">Ceremony, 3:00 pm</div>
-                <p>Silang Crossing East, Tagaytay City.</p>
-                <a href="https://maps.google.com/?q=Our+Lady+of+Lourdes+Parish+Tagaytay" target="_blank" rel="noopener noreferrer">Open in Maps</a>
-              </div>
-              <div className="lp-venue">
-                <h3>Antonio's</h3>
-                <div className="where">Reception, from 5:00 pm</div>
-                <p>Purok 138, Barangay Neogan, Tagaytay City.</p>
-                <a href="https://maps.google.com/?q=Antonio%27s+Restaurant+Tagaytay" target="_blank" rel="noopener noreferrer">Open in Maps</a>
+                <h3>Dress code</h3>
+                <div className="where">What to wear</div>
+                {typeof cfg.dressCode === "string" ? <div className="lp-wear"><b>{cfg.dressCode}</b></div> : (
+                  <>
+                    <div className="lp-wear"><span className="pair"><b>{cfg.dressCode?.gentlemen}</b> <span style={{ color: "var(--ink2)" }}>for the gentlemen</span></span><span className="pair"><b>{cfg.dressCode?.ladies}</b> <span style={{ color: "var(--ink2)" }}>for the ladies</span></span></div>
+                    {cfg.dressCode?.note && <div style={{ fontSize: 13, color: "var(--ink2)", marginTop: 8 }}>{cfg.dressCode.note}</div>}
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -767,40 +1096,115 @@ function Landing({ onEnter }) {
           <h2 className="rv" style={{ transitionDelay: ".1s" }}>The <em>two</em> of us</h2>
           <div className="lp-people" style={{ marginTop: 0 }}>
             <div className="lp-person rv">
-              <div className="lp-frame" style={{ aspectRatio: "4/5", marginBottom: 18 }}><img src={PHOTOS.chicco} alt="Chicco" loading="lazy" /></div>
-              <h3>Chicco</h3><div className="who">Manuel Angelo Gomez, the groom</div>
-              <p>A few lines about Chicco go here: what he's like at a table, what he cooks on a Sunday, what makes him laugh.</p>
+              <div className="lp-frame" style={{ aspectRatio: "4/5", marginBottom: 18 }}><img src={photoUrl(cfg.chicco?.photo)} alt={cfg.chicco?.name} loading="lazy" /></div>
+              <h3>{cfg.chicco?.name}</h3><div className="who">{cfg.chicco?.who}</div>
+              <p>{cfg.chicco?.blurb}</p>
             </div>
             <div className="lp-person rv" style={{ transitionDelay: ".15s" }}>
-              <div className="lp-frame" style={{ aspectRatio: "4/5", marginBottom: 18 }}><img src={PHOTOS.michelle} alt="Michelle" loading="lazy" /></div>
-              <h3>Michelle</h3><div className="who">Michelle Cua, the bride</div>
-              <p>A few lines about Michelle: her warmth, the things she can't stop reading, the smile everyone mentions.</p>
+              <div className="lp-frame" style={{ aspectRatio: "4/5", marginBottom: 18 }}><img src={photoUrl(cfg.michelle?.photo)} alt={cfg.michelle?.name} loading="lazy" /></div>
+              <h3>{cfg.michelle?.name}</h3><div className="who">{cfg.michelle?.who}</div>
+              <p>{cfg.michelle?.blurb}</p>
             </div>
           </div>
-          <div className="lp-frame rv" style={{ aspectRatio: "3/2", marginTop: 36 }}><img src={PHOTOS.laughbw} alt="Chicco and Michelle laughing together" loading="lazy" style={{ objectPosition: "center 30%" }} /></div>
-          <div className="lp-hash rv">
+          {(() => { const arr = Array.isArray(cfg.togetherPhotos) ? cfg.togetherPhotos : (cfg.togetherPhoto ? [cfg.togetherPhoto] : []); if (!arr.length) return null;
+  return arr.length === 1
+    ? <div className="lp-frame rv" style={{ aspectRatio: "3/2", marginTop: 36 }}><img src={photoUrl(arr[0])} alt="" loading="lazy" style={{ objectPosition: "center 30%" }} /></div>
+    : <div className="lp-trip" style={{ marginTop: 36 }}>{arr.map((f, i) => <div key={i} className="lp-frame rv" style={{ transitionDelay: `${.1 * i}s` }}><img src={photoUrl(f)} alt="" loading="lazy" style={{ objectPosition: "center 35%" }} /></div>)}</div>; })()}
+          <div className="lp-hash rv" id="share">
             <div><div className="small">Share the day</div><div className="h tag">{HASHTAG}</div></div>
-            <p>Tag your photos and stories so we can find them all afterwards. Lulu the dog will be reviewing every one.</p>
+            <div>
+              <p>{cfg.hashtagBlurb}</p>
+              {cfg.albumUrl
+                ? <a className="lp-btn amber" href={cfg.albumUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 14 }}>Add your photos</a>
+                : cfg.albumNote && <p style={{ marginTop: 10, fontSize: 13, opacity: .7 }}>{cfg.albumNote}</p>}
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Entourage */}
+      {cfg.entourage && (
+        <section className="lp-sec sand light lp-ent-sec-wrap" id="entourage">
+          {cfg.entourage.bg && <div className="lp-ent-bg" style={{ backgroundImage: `url(${photoUrl(cfg.entourage.bg)})` }} aria-hidden="true" />}
+          <div className="wrap" style={{ position: "relative" }}>
+            <div className="small rv">The entourage</div>
+            <h2 className="rv" style={{ transitionDelay: ".1s" }}>{cfg.entourage.heading} <em>{cfg.entourage.headingEm}</em></h2>
+            <div className="lp-ent">
+              {cfg.entourage.parents && (<>
+                <div className="lp-ent-row rv" style={{ marginBottom: 6 }}>
+                  <div className="lp-ent-col r"><div className="lp-ent-title">Parents of the Groom</div>{(cfg.entourage.parents.groom || []).map((n, j) => <div key={j}>{n}</div>)}</div>
+                  <div className="lp-ent-col"><div className="lp-ent-title">Parents of the Bride</div>{(cfg.entourage.parents.bride || []).map((n, j) => <div key={j}>{n}</div>)}</div>
+                </div>
+                <div className="lp-ent-div rv" aria-hidden="true"><FlowerLogo size={18} color="#7D9470" /></div>
+              </>)}
+              {cfg.entourage.principal?.length > 0 && (
+                <div className="lp-ent-block rv">
+                  <div className="lp-ent-title">Principal Sponsors</div>
+                  <div className="lp-ent-pairs">
+                    {cfg.entourage.principal.map((p, i) => <React.Fragment key={i}><span className="r">{p[0]}</span><span>{p[1]}</span></React.Fragment>)}
+                  </div>
+                </div>
+              )}
+              <div className="lp-ent-div rv" aria-hidden="true"><FlowerLogo size={18} color="#7D9470" /></div>
+              {(cfg.entourage.groups || []).map((g, i) => (
+                <div className="lp-ent-row rv" key={i} style={{ transitionDelay: `${.05 * i}s` }}>
+                  <div className="lp-ent-col r"><div className="lp-ent-title">{g.left?.title}</div>{(g.left?.names || []).map((n, j) => <div key={j}>{n}</div>)}</div>
+                  <div className="lp-ent-col"><div className="lp-ent-title">{g.right?.title}</div>{(g.right?.names || []).map((n, j) => <div key={j}>{n}</div>)}</div>
+                </div>
+              ))}
+              {cfg.entourage.secondary?.length > 0 && (<>
+                <div className="lp-ent-div rv" aria-hidden="true"><FlowerLogo size={18} color="#7D9470" /></div>
+                <div className="lp-ent-block rv">
+                  <div className="lp-ent-title">Secondary Sponsors</div>
+                  <div className="lp-ent-sec">
+                    {cfg.entourage.secondary.map((s, i) => <div key={i}><div className="lp-ent-sub">{s.title}</div>{s.names.map((n, j) => <div key={j}>{n}</div>)}</div>)}
+                  </div>
+                </div>
+              </>)}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Gallery strip */}
       <section className="lp-sec dark" style={{ paddingLeft: 0, paddingRight: 0 }}>
         <div className="wrap"><div className="small rv">Before the big day</div><h2 className="rv" style={{ transitionDelay: ".1s" }}>A few from the <em>prenup</em></h2></div>
         <div className="lp-strip">
-          <div className="lp-frame wide"><img src={PHOTOS.bridge} alt="" loading="lazy" /></div>
-          <div className="lp-frame"><img src={PHOTOS.standing} alt="" loading="lazy" /></div>
-          <div className="lp-frame"><img src={PHOTOS.window} alt="" loading="lazy" /></div>
-          <div className="lp-frame wide"><img src={PHOTOS.house} alt="" loading="lazy" /></div>
-          <div className="lp-frame"><img src={PHOTOS.dinner} alt="" loading="lazy" /></div>
-          <div className="lp-frame"><img src={PHOTOS.lanai} alt="" loading="lazy" /></div>
+          {(cfg.gallery || []).map((g, i) => <div key={i} className={"lp-frame" + (g.wide ? " wide" : "")}><img src={photoUrl(g.file)} alt={g.caption || ""} loading="lazy" />{g.caption && <span className="cap">{g.caption}</span>}</div>)}
         </div>
-        <div className="wrap"><p style={{ fontSize: 13, opacity: .6, marginTop: 18 }}>Swipe for more. Photos from the day will be gathered here afterwards under {HASHTAG}.</p></div>
+        <div className="wrap"><p style={{ fontSize: 13, opacity: .6, marginTop: 18 }}>{cfg.galleryNote} {HASHTAG}</p></div>
       </section>
 
+      {/* Video (shows only when site.json has a YouTube link) */}
+      {yt && (
+        <section className="lp-sec light" id="film">
+          <div className="wrap">
+            <div className="small rv">{cfg.video?.title ? "Watch" : "Film"}</div>
+            <h2 className="rv" style={{ transitionDelay: ".1s" }}>{cfg.video?.title || <>A short <em>film</em></>}</h2>
+            <div className="lp-frame rv" style={{ aspectRatio: "16/9", transitionDelay: ".2s", background: "#000" }}>
+              <iframe src={`https://www.youtube-nocookie.com/embed/${yt}?rel=0&modestbranding=1`} title={cfg.video?.title || "Film"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen style={{ width: "100%", height: "100%", border: 0, display: "block" }} />
+            </div>
+            {cfg.video?.caption && <p style={{ fontSize: 14, color: "var(--ink2)", marginTop: 14 }}>{cfg.video.caption}</p>}
+          </div>
+        </section>
+      )}
+
+      {/* Soundtrack (shows only when site.json has a Spotify link) */}
+      {(() => { const sp = spotifyEmbed(cfg.spotify?.url); if (!sp) return null; const tall = sp.type !== "track"; return (
+        <section className="lp-sec sand light" id="music">
+          <div className="wrap">
+            <div className="small rv">Listen</div>
+            <h2 className="rv" style={{ transitionDelay: ".1s" }}>{cfg.spotify?.title || <>The <em>soundtrack</em></>}</h2>
+            {cfg.spotify?.caption && <p className="rv" style={{ color: "var(--ink2)", fontSize: 15, transitionDelay: ".15s" }}>{cfg.spotify.caption}</p>}
+            <div className="rv" style={{ transitionDelay: ".2s", maxWidth: 720 }}>
+              <iframe src={`https://open.spotify.com/embed/${sp.type}/${sp.id}?utm_source=generator&theme=0`} width="100%" height={tall ? 380 : 152} frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Spotify" style={{ borderRadius: 12, display: "block" }} />
+            </div>
+          </div>
+        </section>
+      ); })()}
+
       {/* RSVP */}
-      <section className="lp-sec sand light" id="rsvp">
+      <section className="lp-sec light" id="rsvp">
         <div className="wrap lp-there" style={{ alignItems: "center" }}>
           <div>
           <div className="small rv">Kindly reply</div>
@@ -813,7 +1217,8 @@ function Landing({ onEnter }) {
             </div>
           ) : (
             <div className="lp-form rv" style={{ transitionDelay: ".2s" }}>
-              <p style={{ color: "var(--ink2)", fontSize: 15 }}>Please reply by 30 November 2026 so we can give the caterer a final count.</p>
+              <p style={{ color: "var(--ink2)", fontSize: 15 }}>Please reply by {cfg.rsvpDeadline} so we can give the caterer a final count.</p>
+              <input type="text" value={rsvpHp} onChange={e => setRsvpHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
               <label htmlFor="rsvp-name">Your name</label>
               <input id="rsvp-name" value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }} placeholder="First and last name" autoComplete="name" />
               <label>Will you be there?</label>
@@ -828,7 +1233,7 @@ function Landing({ onEnter }) {
             </div>
           )}
           </div>
-          <div className="lp-frame rv" style={{ aspectRatio: "4/3", transitionDelay: ".2s" }}><img src={PHOTOS.bouquet2} alt="Michelle laughing with a bouquet" loading="lazy" /></div>
+          <div className="lp-frame rv" style={{ aspectRatio: "4/3", transitionDelay: ".2s" }}><img src={photoUrl(cfg.rsvpPhoto)} alt="" loading="lazy" /></div>
         </div>
       </section>
 
@@ -866,27 +1271,47 @@ function Landing({ onEnter }) {
           <FlowerLogo size={30} color="#D9A55A" />
           <p className="big">Chicco <em>&amp;</em> Michelle</p>
           <div className="tag">{HASHTAG}</div>
-          <p>Friday, 15 January 2027. Ceremony at three, Our Lady of Lourdes. Reception from five, Antonio's, Tagaytay.</p>
-          <p>Questions? Message either of us, or Ernest at Bespoke Manila, 0917 521 5447.</p>
+          <p>{cfg.date}. {cfg.venuesLine}.</p>
+          <p>{cfg.contact}</p>
         </div>
       </footer>
+      {cfg.song?.file && (
+        <>
+          <audio ref={audioRef} src={photoUrl(cfg.song.file)} loop preload="none" />
+          <button className="lp-song" onClick={toggleSong} aria-pressed={playing} aria-label={playing ? "Pause music" : "Play music"}>
+            <span className="dot" />{playing ? "Pause" : "Play"}{cfg.song.title ? ` · ${cfg.song.title}` : ""}
+          </button>
+        </>
+      )}
     </div>
   );
 }
 
-function Gate({ onOk }) {
-  const [pw, setPw] = useState(""); const [err, setErr] = useState(false); const [shake, setShake] = useState(false);
-  const go = () => { if (pw === "lulubear") { onOk(); } else { setErr(true); setShake(true); setTimeout(() => setShake(false), 500); } };
+function Gate({ onOk, onBack }) {
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [shake, setShake] = useState(false);
+  const go = async () => {
+    if (!email || !pw) { setErr("Enter your email and password."); return; }
+    setBusy(true); setErr("");
+    const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw });
+    setBusy(false);
+    if (error) { setErr(error.message === "Invalid login credentials" ? "That email or password isn't right." : error.message); setShake(true); setTimeout(() => setShake(false), 500); return; }
+    onOk();
+  };
   return (
-    <div style={{ minHeight: "100vh", background: "var(--cr)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="fade" style={{ background: "var(--wh)", borderRadius: 12, padding: "44px 38px", width: 340, boxShadow: "0 8px 40px rgba(46,37,32,.1)", textAlign: "center", animation: shake ? "shake .5s" : undefined }}>
+    <div style={{ minHeight: "100vh", background: "var(--cr)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div className="fade" style={{ background: "var(--wh)", borderRadius: 12, padding: "44px 38px", width: 360, maxWidth: "100%", boxShadow: "0 8px 40px rgba(46,37,32,.1)", textAlign: "center", animation: shake ? "shake .5s" : undefined }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><DogSketch /></div>
         <h2 className="sf" style={{ fontSize: 26, fontWeight: 400, marginBottom: 6 }}>Private Dashboard</h2>
         <p style={{ fontSize: 13, color: "var(--m)", marginBottom: 26 }}>Chicco &amp; Michelle only</p>
-        <input type="password" placeholder="Password" value={pw} onChange={e => { setPw(e.target.value); setErr(false); }} onKeyDown={e => e.key === "Enter" && go()} style={{ textAlign: "center", fontSize: 14, letterSpacing: 2, marginBottom: 8 }} />
-        {err && <p style={{ fontSize: 12, color: "var(--d)", margin: "6px 0" }}>Incorrect password</p>}
-        <button onClick={go} style={{ width: "100%", background: "var(--r)", color: "var(--wh)", border: "none", padding: 12, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", borderRadius: 6, marginTop: 6, cursor: "pointer" }}>Enter</button>
-        <p style={{ fontSize: 11, color: "#C9B9A8", marginTop: 14 }}>Hint: Lulu's nickname</p>
+        <input type="email" placeholder="Email" value={email} autoComplete="username" onChange={e => { setEmail(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && go()} style={{ fontSize: 14, marginBottom: 8 }} />
+        <input type="password" placeholder="Password" value={pw} autoComplete="current-password" onChange={e => { setPw(e.target.value); setErr(""); }} onKeyDown={e => e.key === "Enter" && go()} style={{ fontSize: 14, marginBottom: 8 }} />
+        {err && <p style={{ fontSize: 12, color: "var(--d)", margin: "6px 0" }}>{err}</p>}
+        <button onClick={go} disabled={busy} style={{ width: "100%", background: "var(--r)", color: "var(--wh)", border: "none", padding: 12, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", borderRadius: 6, marginTop: 6, cursor: "pointer", opacity: busy ? .6 : 1 }}>{busy ? "Signing in…" : "Sign in"}</button>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--m)", fontSize: 12, marginTop: 16, cursor: "pointer" }}>← Back to the invitation</button>
       </div>
     </div>
   );
@@ -1285,6 +1710,46 @@ const SPECIAL_ROLES = ["—","Entourage","Sponsor","Best Man","Maid of Honor","P
 const VIP_TABLES = ["VIP 1","VIP 2"];
 const TABLE_CAPACITY = t => VIP_TABLES.includes(t) ? 14 : 10;
 
+function RsvpReplies({ guests, setGuests }) {
+  const [rows, setRows] = useState(null);
+  const [open, setOpen] = useState(true);
+  const load = () => sb.from("rsvps").select("*").order("id", { ascending: false }).then(r => setRows((r.data || []).map(x => x.data)));
+  useEffect(() => { load(); }, []);
+  const addAsGuest = r => {
+    const g = { id: Date.now(), name: r.name, phone: "", group: "Mutual", rsvp: r.attending ? "Confirmed" : "Declined", meal: "", plusOne: false, table: "", role: "", notes: r.note || "" };
+    setGuests(p => [...p, g]);
+    sb.from("rsvps").update({ data: { ...r, matched: true, guestId: g.id } }).eq("id", r.id).then(load);
+  };
+  const del = r => { if (!window.confirm("Delete this reply?")) return; sb.from("rsvps").delete().eq("id", r.id).then(load); };
+  const unmatched = (rows || []).filter(r => !r.matched);
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={() => setOpen(o => !o)}>
+        <h4 style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: "var(--m)", fontWeight: 500, display: "flex", gap: 8, alignItems: "center" }}>
+          Replies from the website {rows ? `(${rows.length})` : ""}{unmatched.length ? <Badge label={`${unmatched.length} to review`} color="var(--wa)" /> : null}
+        </h4>
+        <span style={{ fontSize: 12, color: "var(--m)" }}>{open ? "▲" : "▼"}</span>
+      </div>
+      {open && (rows === null ? <p style={{ fontSize: 12, color: "var(--m)", marginTop: 10 }}>Loading…</p> : rows.length === 0 ? <p style={{ fontSize: 13, color: "var(--m)", marginTop: 10 }}>No replies yet. They appear here as guests use the RSVP form.</p> : (
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+          {rows.map(r => (
+            <div key={r.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 10px", background: r.matched ? "var(--cr)" : "rgba(196,168,122,.15)", borderRadius: 6, fontSize: 13 }}>
+              <Badge label={r.attending ? "Accepts" : "Declines"} color={r.attending ? "var(--su)" : "var(--d)"} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 500 }}>{r.name} <span style={{ fontSize: 11, color: "var(--m)", fontWeight: 400 }}>· {String(r.submittedAt || "").slice(0, 10)}</span></div>
+                {r.note && <div style={{ fontSize: 12, color: "var(--m)", fontStyle: "italic" }}>{r.note}</div>}
+                {!r.matched && <div style={{ fontSize: 11, color: "var(--wa)", marginTop: 2 }}>Name not on the guest list</div>}
+              </div>
+              {!r.matched && <Btn v="secondary" onClick={() => addAsGuest(r)}>Add as guest</Btn>}
+              <Btn v="danger" onClick={() => del(r)}>Del</Btn>
+            </div>
+          ))}
+        </div>
+      ))}
+    </Card>
+  );
+}
+
 function GuestsTab({ guests, setGuests }) {
   const [modal, setModal] = useState(false); const [form, setForm] = useState({}); const [sel, setSel] = useState(null);
   const [q, setQ] = useState(""); const [fR, setFR] = useState("All"); const [fG, setFG] = useState("All"); const [fM, setFM] = useState("All");
@@ -1325,6 +1790,7 @@ function GuestsTab({ guests, setGuests }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 18 }}>
         {[["Total",guests.length,"var(--ink)"],["Confirmed",conf,"var(--su)"],["Pending",pend,"var(--wa)"],["Heads",heads,"var(--b)"]].map(([l,v,c])=>(<Card key={l} style={{ textAlign:"center" }}><div style={{ fontSize:10,color:"var(--m)",letterSpacing:1,textTransform:"uppercase",marginBottom:6 }}>{l}</div><div className="sf" style={{ fontSize:30,color:c,fontWeight:300 }}>{v}</div></Card>))}
       </div>
+      <RsvpReplies guests={guests} setGuests={setGuests} />
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>{[["rsvp","RSVP"],["group","Group"],["meal","Meal"],["table","Tables"]].map(([k,l])=>(<button key={k} onClick={()=>setActiveBreakdown(k)} style={{ padding:"5px 14px",borderRadius:20,border:"none",fontSize:11,fontWeight:500,cursor:"pointer",background:activeBreakdown===k?"var(--r)":"var(--l)",color:activeBreakdown===k?"var(--wh)":"var(--m)" }}>{l}</button>))}</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{breakdowns[activeBreakdown].map(item=>(<div key={item.label} style={{ background:item.over?"rgba(196,122,122,.12)":"var(--l)",borderRadius:8,padding:"10px 14px",textAlign:"center",minWidth:80,border:item.over?"1px solid var(--d)":"1px solid transparent" }}><div style={{ fontSize:20,fontWeight:300,color:item.color }}>{item.count}{item.cap?<span style={{ fontSize:11,color:"var(--m)" }}>/{item.cap}</span>:""}</div><div style={{ fontSize:10,color:"var(--m)",textTransform:"uppercase",letterSpacing:1 }}>{item.label}</div>{item.over&&<div style={{ fontSize:9,color:"var(--d)",marginTop:2,fontWeight:600 }}>OVER LIMIT</div>}</div>))}</div>
@@ -1623,7 +2089,7 @@ function AnalysisTab({ suppliers, budget, events, totalBudget }) {
   );
 }
 
-function Dashboard({ onLogout }) {
+function Dashboard({ onLogout, onAuthLost }) {
   const [tab, setTab] = useState("overview");
   const [suppliers, setSuppliers] = useState(INIT_S);
   const [guests, setGuests] = useState(INIT_G);
@@ -1645,7 +2111,10 @@ function Dashboard({ onLogout }) {
       if (d.totalBudget !== null) setTotalBudget(d.totalBudget);
       if (d.lastImport) setLastImport(Number(d.lastImport));
       setLoading(false); initDone.current = true;
-    }).catch(() => { setLoadError(true); setLoading(false); initDone.current = true; });
+    }).catch(err => {
+      if (/JWT|401|permission|row-level|RLS|not authenticated/i.test(String(err?.message))) { onAuthLost(); return; }
+      setLoadError(true); setLoading(false); initDone.current = true;
+    });
   }, []);
 
   const [saveErr, setSaveErr] = useState("");
@@ -1730,11 +2199,19 @@ function Dashboard({ onLogout }) {
 export default function App() {
   useEffect(() => { injectStyles(); }, []);
   const [page, setPage] = useState("landing");
+  const [session, setSession] = useState(undefined);
+  useEffect(() => {
+    sb.auth.getSession().then(({ data }) => setSession(data.session || null));
+    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => setSession(s || null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  const enter = () => setPage(session ? "dashboard" : "gate");
+  const logout = async () => { await sb.auth.signOut(); setPage("landing"); };
   return (
     <div>
-      {page==="landing"   && <Landing   onEnter={()=>setPage("gate")} />}
-      {page==="gate"      && <Gate      onOk={()=>setPage("dashboard")} />}
-      {page==="dashboard" && <Dashboard onLogout={()=>setPage("landing")} />}
+      {page === "landing"   && <Landing   onEnter={enter} />}
+      {page === "gate"      && <Gate      onOk={() => setPage("dashboard")} onBack={() => setPage("landing")} />}
+      {page === "dashboard" && (session ? <Dashboard onLogout={logout} onAuthLost={() => setPage("gate")} /> : <Gate onOk={() => setPage("dashboard")} onBack={() => setPage("landing")} />)}
     </div>
   );
 }
