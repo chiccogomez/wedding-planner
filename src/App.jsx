@@ -696,31 +696,31 @@ const SITE_DEFAULTS = {
       "time": "3:00",
       "ampm": "PM",
       "what": "Ceremony",
-      "note": "A little prayer, a few promises, then a solemn “I do.”"
+      "note": "God’s blessing, a lifetime of promises, a solemn “I do.”"
     },
     {
       "time": "4:30",
       "ampm": "PM",
       "what": "Photos at the Church",
-      "note": "Family, entourage, a few friends — plus a little proof we all looked this good."
+      "note": "A little proof we all looked this good."
     },
     {
       "time": "5:00",
       "ampm": "PM",
       "what": "Cocktails at the Lanai",
-      "note": "Her favorite place, at his favorite time of day.\nGolden light, cool air, a little music — our first dance."
+      "note": "Her favorite place at his favorite time of day."
     },
     {
       "time": "6:30",
       "ampm": "PM",
       "what": "Dinner",
-      "note": "Dinner is served. Stories are shared, glasses are raised."
+      "note": "Stories are shared. Glasses are raised."
     },
     {
       "time": "9:00",
       "ampm": "PM",
       "what": "The Night Goes On",
-      "note": "The speeches are done. The band plays on. We settle into the night."
+      "note": "We settle into the night."
     }
   ],
   "dayPhoto": "kiss.jpg",
@@ -918,7 +918,8 @@ const SITE_DEFAULTS = {
   ],
   "galleryNote": "Swipe for more. Photos from the day will be gathered here afterwards.",
   "rsvpPhoto": "bouquet2.jpg",
-  "rsvpDeadline": "30 November 2026",
+  "rsvpDeadline": "1 December 2026",
+  "rsvpLine": "Kindly let us know by {date}, so we can make sure there’s a seat with your name on it.",
   "song": {
     "file": "",
     "title": ""
@@ -992,6 +993,7 @@ function Landing({ onEnter }) {
   const [rsvpName, setRsvpName] = useState("");
   const [rsvpAttending, setRsvpAttending] = useState(null);
   const [rsvpNote, setRsvpNote] = useState("");
+  const [rsvpDiet, setRsvpDiet] = useState("");
   const [rsvpSent, setRsvpSent] = useState(false);
   const [rsvpError, setRsvpError] = useState("");
   const [rsvpHp, setRsvpHp] = useState("");
@@ -1005,7 +1007,7 @@ function Landing({ onEnter }) {
     if (!rsvpName.trim()) { setRsvpError("Add your name so we know who's replying."); return; }
     if (rsvpAttending === null) { setRsvpError("Let us know whether you can make it."); return; }
     if (rsvpHp) { setRsvpSent(true); return; } /* honeypot filled → bot; pretend success */
-    const { error } = await sb.rpc("submit_rsvp", { p_name: rsvpName.trim(), p_attending: rsvpAttending, p_note: rsvpNote.trim() });
+    const { error } = await sb.rpc("submit_rsvp", { p_name: rsvpName.trim(), p_attending: rsvpAttending, p_note: rsvpNote.trim(), p_diet: rsvpDiet.trim() });
     if (error) { setRsvpError("Something went wrong sending that. Please try again, or message us directly."); return; }
     setRsvpSent(true);
   };
@@ -1045,7 +1047,7 @@ function Landing({ onEnter }) {
         <div className="wrap lp-day">
           <div>
             <div className="small rv">The day</div>
-            <h2 className="rv" style={{ transitionDelay: ".1s" }}>{String(cfg.dayHeading || "").split("\n").map((l, i, arr) => <React.Fragment key={i}>{l}{i < arr.length - 1 && <br />}</React.Fragment>)} <em style={{ fontWeight: 600 }}>{cfg.dayHeadingEm}</em></h2>
+            <h2 className="rv" style={{ transitionDelay: ".1s" }}>{String(cfg.dayHeading || "").split("\n").map((l, i, arr) => <React.Fragment key={i}>{l}{i < arr.length - 1 && <br />}</React.Fragment>)} <em>{cfg.dayHeadingEm}</em></h2>
             <ol className="lp-tl">
               {(cfg.timeline || []).map((t, i) => <li key={i}><span className="t">{t.time}{t.ampm && <small>{t.ampm}</small>}</span><span className="w">{t.what}</span>{t.note && <span className="n">{String(t.note).split("\n").map((l, j, arr) => <React.Fragment key={j}>{l}{j < arr.length - 1 && <br />}</React.Fragment>)}</span>}</li>)}
             </ol>
@@ -1217,7 +1219,7 @@ function Landing({ onEnter }) {
             </div>
           ) : (
             <div className="lp-form rv" style={{ transitionDelay: ".2s" }}>
-              <p style={{ color: "var(--ink2)", fontSize: 15 }}>Please reply by {cfg.rsvpDeadline} so we can give the caterer a final count.</p>
+              <p style={{ color: "var(--ink2)", fontSize: 15 }}>{String(cfg.rsvpLine || "").replace("{date}", cfg.rsvpDeadline || "")}</p>
               <input type="text" value={rsvpHp} onChange={e => setRsvpHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
               <label htmlFor="rsvp-name">Your name</label>
               <input id="rsvp-name" value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }} placeholder="First and last name" autoComplete="name" />
@@ -1227,7 +1229,9 @@ function Landing({ onEnter }) {
                 <button className={rsvpAttending === false ? "on" : ""} onClick={() => { setRsvpAttending(false); setRsvpError(""); }}>Regretfully declines</button>
               </div>
               <label htmlFor="rsvp-note">A note for us (optional)</label>
-              <textarea id="rsvp-note" value={rsvpNote} onChange={e => setRsvpNote(e.target.value)} placeholder="Well wishes, dietary needs, or the name of your plus-one" />
+              <textarea id="rsvp-note" value={rsvpNote} onChange={e => setRsvpNote(e.target.value)} placeholder="Well wishes, or anything you’d like us to know" style={{ minHeight: 56 }} />
+              <label htmlFor="rsvp-diet">Dietary needs</label>
+              <input id="rsvp-diet" value={rsvpDiet} onChange={e => setRsvpDiet(e.target.value)} placeholder="Allergies, vegetarian, halal, none" />
               {rsvpError && <div className="lp-err">{rsvpError}</div>}
               <button className="lp-btn" onClick={handleRsvp}>Send reply</button>
             </div>
@@ -1716,7 +1720,7 @@ function RsvpReplies({ guests, setGuests }) {
   const load = () => sb.from("rsvps").select("*").order("id", { ascending: false }).then(r => setRows((r.data || []).map(x => x.data)));
   useEffect(() => { load(); }, []);
   const addAsGuest = r => {
-    const g = { id: Date.now(), name: r.name, phone: "", group: "Mutual", rsvp: r.attending ? "Confirmed" : "Declined", meal: "", plusOne: false, table: "", role: "", notes: r.note || "" };
+    const g = { id: Date.now(), name: r.name, phone: "", group: "Mutual", rsvp: r.attending ? "Confirmed" : "Declined", meal: "", plusOne: false, table: "", role: "", notes: [r.note, r.diet && `Dietary: ${r.diet}`].filter(Boolean).join(" · ") };
     setGuests(p => [...p, g]);
     sb.from("rsvps").update({ data: { ...r, matched: true, guestId: g.id } }).eq("id", r.id).then(load);
   };
@@ -1738,6 +1742,7 @@ function RsvpReplies({ guests, setGuests }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 500 }}>{r.name} <span style={{ fontSize: 11, color: "var(--m)", fontWeight: 400 }}>· {String(r.submittedAt || "").slice(0, 10)}</span></div>
                 {r.note && <div style={{ fontSize: 12, color: "var(--m)", fontStyle: "italic" }}>{r.note}</div>}
+                {r.diet && <div style={{ fontSize: 12, color: "var(--b)" }}>Dietary: {r.diet}</div>}
                 {!r.matched && <div style={{ fontSize: 11, color: "var(--wa)", marginTop: 2 }}>Name not on the guest list</div>}
               </div>
               {!r.matched && <Btn v="secondary" onClick={() => addAsGuest(r)}>Add as guest</Btn>}
