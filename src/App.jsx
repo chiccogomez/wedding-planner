@@ -157,7 +157,7 @@ const injectStyles = () => {
     /* entourage */
     .lp-ent-sec-wrap{position:relative;overflow:hidden;}
     .lp-ent-bg{position:absolute;inset:0;background-size:cover;background-position:center 28%;opacity:.16;filter:grayscale(1) contrast(.9);}
-    .lp-ent-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--sand) 0%,rgba(231,224,209,.35) 30%,rgba(231,224,209,.35) 70%,var(--sand) 100%);}
+    .lp-ent-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--ivory) 0%,rgba(244,239,230,.35) 30%,rgba(244,239,230,.35) 70%,var(--ivory) 100%);}
     .lp-ent{max-width:820px;margin:0 auto;text-align:center;font-size:15px;line-height:1.9;}
     .lp-ent-title{font-family:'Bodoni Moda',serif;font-style:italic;font-size:22px;color:var(--forest);margin:0 0 6px;line-height:1.2;}
     .lp-ent-div{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 30px;}
@@ -219,6 +219,15 @@ const injectStyles = () => {
     .lp-choice button.on{background:var(--forest);color:#fff;}
     .lp-btn{display:inline-block;margin-top:26px;padding:14px 30px;background:var(--forest);color:#fff;border:0;font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:0;}
     .lp-btn:hover{background:#213629;}
+    .lp-field{width:100%;border-bottom:1px solid #C9BFAD;padding:10px 0;font-size:16px;color:var(--ink);}
+    .lp-choice a.as-btn{display:flex;align-items:center;justify-content:center;padding:13px 10px;border:1px solid var(--forest);background:transparent;color:var(--forest);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;opacity:1;border-bottom:1px solid var(--forest);}
+    .lp-choice a.as-btn:hover{background:var(--forest);color:#fff;}
+    .lp-phone{display:inline-block;font-family:'Bodoni Moda',serif;font-size:clamp(26px,3vw,34px);color:var(--forest);border-bottom:0;opacity:1;margin:6px 0 10px;letter-spacing:.01em;}
+    .lp-rsvp-links{display:flex;gap:22px;}
+    .lp-rsvp-links a{font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;color:var(--forest);border-bottom:1px solid var(--moss);padding-bottom:2px;opacity:1;}
+    .lp-rsvp-links a:hover{border-bottom-color:var(--forest);}
+    .lp a.lp-btn{color:#fff;opacity:1;border-bottom:0;}
+    .lp a.lp-btn.amber{color:var(--wood);}
     .lp-btn.amber{background:var(--amber);color:var(--wood);}
     .lp-btn.amber:hover{background:#E4B56E;}
     .lp-choice button:focus-visible,.lp-btn:focus-visible,.lp-opt:focus-visible{outline:2px solid var(--amber);outline-offset:3px;}
@@ -696,6 +705,8 @@ const FlowerLogo = ({ size = 80, color = "#C4967A" }) => (
 
 /* ─── Site content: everything below is editable in public/site.json ─────── */
 const SITE_DEFAULTS = {
+  "guestCode": "mc",
+  "guestPrompt": "This page is for our guests. Please enter the word from your invitation.",
   "hashtag": "#naCuaNaSiChicco",
   "date": "Friday, 15 January 2027",
   "venuesLine": "Our Lady of Lourdes and Antonio's, Tagaytay",
@@ -951,9 +962,6 @@ const SITE_DEFAULTS = {
       "file": "garden.jpg"
     },
     {
-      "file": "window.jpg"
-    },
-    {
       "file": "heads.jpg"
     },
     {
@@ -962,8 +970,16 @@ const SITE_DEFAULTS = {
   ],
   "galleryNote": "Swipe for more. Photos from the day will be gathered here afterwards.",
   "rsvpPhoto": "bouquet2.jpg",
+  "rsvpMode": "message",
   "rsvpDeadline": "1 December 2026",
   "rsvpLine": "Kindly let us know by {date}, so we can make sure there’s a seat with your name on it.",
+  "rsvpMessage": "Prefer to send us a message instead?\nRia Pascual of Bespoke Manila will be happy to assist.",
+  "rsvpContact": {
+    "name": "Ria Pascual",
+    "phone": "+63 915 850 7644",
+    "viber": true,
+    "whatsapp": true
+  },
   "song": {
     "file": "",
     "title": ""
@@ -1037,6 +1053,12 @@ function Landing({ onEnter }) {
   const gal = cfg.gallery || [];
   useEffect(() => { if (lb < 0) return; const k = e => { if (e.key === "Escape") setLb(-1); if (e.key === "ArrowRight") setLb(i => (i + 1) % gal.length); if (e.key === "ArrowLeft") setLb(i => (i - 1 + gal.length) % gal.length); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [lb, gal.length]);
   const stripRef = useRef(null);
+  const codeOk = s => !cfg.guestCode || String(s || "").trim().toLowerCase() === String(cfg.guestCode).trim().toLowerCase();
+  const [unlocked, setUnlocked] = useState(() => { try { const q = new URLSearchParams(window.location.search).get("code"); if (q) return true; return localStorage.getItem("cm-guest") === "1"; } catch { return false; } });
+  useEffect(() => { try { const q = new URLSearchParams(window.location.search).get("code"); if (q && codeOk(q)) { localStorage.setItem("cm-guest", "1"); setUnlocked(true); } else if (q) setUnlocked(false); } catch {} }, [cfg.guestCode]);
+  const [codeIn, setCodeIn] = useState(""); const [codeErr, setCodeErr] = useState(false);
+  const tryCode = () => { if (codeOk(codeIn)) { try { localStorage.setItem("cm-guest", "1"); } catch {} setUnlocked(true); setTimeout(() => document.getElementById("day")?.scrollIntoView({ behavior: "smooth" }), 150); } else { setCodeErr(true); } };
+  const gated = !!cfg.guestCode && !unlocked;
   const stripScroll = dir => { const el = stripRef.current; if (!el) return; const card = el.querySelector(".lp-frame"); el.scrollBy({ left: dir * ((card?.getBoundingClientRect().width || 300) + 14), behavior: "smooth" }); };
   const yt = ytId(cfg.video?.youtube);
   const [playing, setPlaying] = useState(false); const audioRef = useRef(null);
@@ -1100,6 +1122,21 @@ function Landing({ onEnter }) {
         </div>
       </header>
 
+      {gated && (
+        <section className="lp-sec light" id="gate">
+          <div className="wrap">
+            <div className="lp-form" style={{ maxWidth: 420 }}>
+              <div className="small">For our guests</div>
+              <p style={{ color: "var(--ink2)", fontSize: 15, marginTop: 10 }}>{cfg.guestPrompt}</p>
+              <label htmlFor="guest-code">The word on your invitation</label>
+              <input id="guest-code" value={codeIn} onChange={e => { setCodeIn(e.target.value); setCodeErr(false); }} onKeyDown={e => e.key === "Enter" && tryCode()} autoComplete="off" autoCapitalize="none" placeholder="" />
+              {codeErr && <div className="lp-err">That's not it. Check the invitation and try again.</div>}
+              <button className="lp-btn" onClick={tryCode}>Open</button>
+            </div>
+          </div>
+        </section>
+      )}
+      {!gated && <>
       {/* The day: candlelight */}
       <section className="lp-sec dark" id="day">
         <div className="wrap lp-day">
@@ -1149,8 +1186,60 @@ function Landing({ onEnter }) {
         </div>
       </section>
 
+      {/* RSVP */}
+      <section className="lp-sec light" id="rsvp">
+        <div className="wrap lp-there" style={{ alignItems: "center" }}>
+          <div>
+          <div className="small rv">Kindly reply</div>
+          <h2 className="rv" style={{ transitionDelay: ".1s" }}>Will you <em>join us?</em></h2>
+          {cfg.rsvpMode === "message" ? (() => { const c = cfg.rsvpContact || {}; const digits = String(c.phone || "").replace(/\D/g, ""); return (
+            <div className="lp-form rv" style={{ transitionDelay: ".2s" }}>
+              <p style={{ color: "var(--ink2)", fontSize: 15 }}>{String(cfg.rsvpLine || "").replace("{date}", cfg.rsvpDeadline || "")}</p>
+              <label>Reply by</label>
+              <div className="lp-field">{cfg.rsvpDeadline}</div>
+              <label>Send a message to</label>
+              <div className="lp-field">{c.name}{c.org ? `, ${c.org}` : ", Bespoke Manila"}</div>
+              <label>Mobile</label>
+              <div className="lp-field"><a href={`tel:+${digits}`} style={{ border: 0, opacity: 1, color: "var(--ink)" }}>{c.phone}</a></div>
+              <label>Message on</label>
+              <div className="lp-choice">
+                {c.viber && <a className="as-btn" href={`viber://chat?number=%2B${digits}`}>Viber</a>}
+                {c.whatsapp && <a className="as-btn" href={`https://wa.me/${digits}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
+              </div>
+            </div>
+          ); })() : rsvpSent ? (
+            <div className="lp-form">
+              <div className="bloom" style={{ marginBottom: 14 }}><FlowerLogo size={48} color="#2C4536" /></div>
+              <p className="serif" style={{ fontSize: 28 }}>Thank you, {rsvpName}.</p>
+              <p>{rsvpAttending ? "We can't wait to celebrate with you." : "We'll miss you, and we're grateful you let us know."}</p>
+            </div>
+          ) : (
+            <div className="lp-form rv" style={{ transitionDelay: ".2s" }}>
+              <p style={{ color: "var(--ink2)", fontSize: 15 }}>{String(cfg.rsvpLine || "").replace("{date}", cfg.rsvpDeadline || "")}</p>
+              <input type="text" value={rsvpHp} onChange={e => setRsvpHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
+              <label htmlFor="rsvp-name">Your name</label>
+              <input id="rsvp-name" value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }} placeholder="First and last name" autoComplete="name" />
+              <label>Will you be there?</label>
+              <div className="lp-choice">
+                <button className={rsvpAttending === true ? "on" : ""} onClick={() => { setRsvpAttending(true); setRsvpError(""); }}>Joyfully accepts</button>
+                <button className={rsvpAttending === false ? "on" : ""} onClick={() => { setRsvpAttending(false); setRsvpError(""); }}>Regretfully declines</button>
+              </div>
+              <label htmlFor="rsvp-note">A note for us (optional)</label>
+              <textarea id="rsvp-note" value={rsvpNote} onChange={e => setRsvpNote(e.target.value)} placeholder="Well wishes, or anything you’d like us to know" style={{ minHeight: 56 }} />
+              <label htmlFor="rsvp-diet">Dietary needs</label>
+              <input id="rsvp-diet" value={rsvpDiet} onChange={e => setRsvpDiet(e.target.value)} placeholder="Allergies, vegetarian, halal, none" />
+              {rsvpError && <div className="lp-err">{rsvpError}</div>}
+              <button className="lp-btn" onClick={handleRsvp}>Send reply</button>
+              {cfg.rsvpAlt && <p style={{ fontSize: 13, color: "var(--ink2)", marginTop: 22 }}>{cfg.rsvpAlt}</p>}
+            </div>
+          )}
+          </div>
+          <div className="lp-frame rv" style={{ aspectRatio: "4/3", transitionDelay: ".2s" }}><img src={photoUrl(cfg.rsvpPhoto)} alt="" loading="lazy" /></div>
+        </div>
+      </section>
+
       {/* The two of us */}
-      <section className="lp-sec light" id="us">
+      <section className="lp-sec sand light" id="us">
         <div className="wrap">
           <div className="small rv">Our story</div>
           <h2 className="rv" style={{ transitionDelay: ".1s" }}>The <em>two</em> of us</h2>
@@ -1184,7 +1273,7 @@ function Landing({ onEnter }) {
 
       {/* Entourage */}
       {cfg.entourage && (
-        <section className="lp-sec sand light lp-ent-sec-wrap" id="entourage">
+        <section className="lp-sec light lp-ent-sec-wrap" id="entourage">
           {cfg.entourage.bg && <div className="lp-ent-bg" style={{ backgroundImage: `url(${photoUrl(cfg.entourage.bg)})` }} aria-hidden="true" />}
           <div className="wrap" style={{ position: "relative" }}>
             <div className="small rv">The entourage</div>
@@ -1276,42 +1365,6 @@ function Landing({ onEnter }) {
         </section>
       ); })()}
 
-      {/* RSVP */}
-      <section className="lp-sec light" id="rsvp">
-        <div className="wrap lp-there" style={{ alignItems: "center" }}>
-          <div>
-          <div className="small rv">Kindly reply</div>
-          <h2 className="rv" style={{ transitionDelay: ".1s" }}>Will you <em>join us?</em></h2>
-          {rsvpSent ? (
-            <div className="lp-form">
-              <div className="bloom" style={{ marginBottom: 14 }}><FlowerLogo size={48} color="#2C4536" /></div>
-              <p className="serif" style={{ fontSize: 28 }}>Thank you, {rsvpName}.</p>
-              <p>{rsvpAttending ? "We can't wait to celebrate with you." : "We'll miss you, and we're grateful you let us know."}</p>
-            </div>
-          ) : (
-            <div className="lp-form rv" style={{ transitionDelay: ".2s" }}>
-              <p style={{ color: "var(--ink2)", fontSize: 15 }}>{String(cfg.rsvpLine || "").replace("{date}", cfg.rsvpDeadline || "")}</p>
-              <input type="text" value={rsvpHp} onChange={e => setRsvpHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
-              <label htmlFor="rsvp-name">Your name</label>
-              <input id="rsvp-name" value={rsvpName} onChange={e => { setRsvpName(e.target.value); setRsvpError(""); }} placeholder="First and last name" autoComplete="name" />
-              <label>Will you be there?</label>
-              <div className="lp-choice">
-                <button className={rsvpAttending === true ? "on" : ""} onClick={() => { setRsvpAttending(true); setRsvpError(""); }}>Joyfully accepts</button>
-                <button className={rsvpAttending === false ? "on" : ""} onClick={() => { setRsvpAttending(false); setRsvpError(""); }}>Regretfully declines</button>
-              </div>
-              <label htmlFor="rsvp-note">A note for us (optional)</label>
-              <textarea id="rsvp-note" value={rsvpNote} onChange={e => setRsvpNote(e.target.value)} placeholder="Well wishes, or anything you’d like us to know" style={{ minHeight: 56 }} />
-              <label htmlFor="rsvp-diet">Dietary needs</label>
-              <input id="rsvp-diet" value={rsvpDiet} onChange={e => setRsvpDiet(e.target.value)} placeholder="Allergies, vegetarian, halal, none" />
-              {rsvpError && <div className="lp-err">{rsvpError}</div>}
-              <button className="lp-btn" onClick={handleRsvp}>Send reply</button>
-            </div>
-          )}
-          </div>
-          <div className="lp-frame rv" style={{ aspectRatio: "4/3", transitionDelay: ".2s" }}><img src={photoUrl(cfg.rsvpPhoto)} alt="" loading="lazy" /></div>
-        </div>
-      </section>
-
       {/* Quiz */}
       <section className="lp-sec dark" id="quiz">
         <div className="wrap">
@@ -1341,6 +1394,7 @@ function Landing({ onEnter }) {
         </div>
       </section>
 
+      </>}
       <footer className="lp-foot">
         <div className="wrap">
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><FlowerLogo size={30} color="#D9A55A" /></div>

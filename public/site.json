@@ -1,4 +1,6 @@
 {
+  "guestCode": "mc",
+  "guestPrompt": "This page is for our guests. Please enter the word from your invitation.",
   "hashtag": "#naCuaNaSiChicco",
   "date": "Friday, 15 January 2027",
   "venuesLine": "Our Lady of Lourdes and Antonio's, Tagaytay",
@@ -254,9 +256,6 @@
       "file": "garden.jpg"
     },
     {
-      "file": "window.jpg"
-    },
-    {
       "file": "heads.jpg"
     },
     {
@@ -265,8 +264,16 @@
   ],
   "galleryNote": "Swipe for more. Photos from the day will be gathered here afterwards.",
   "rsvpPhoto": "bouquet2.jpg",
+  "rsvpMode": "message",
   "rsvpDeadline": "1 December 2026",
   "rsvpLine": "Kindly let us know by {date}, so we can make sure there’s a seat with your name on it.",
+  "rsvpMessage": "Prefer to send us a message instead?\nRia Pascual of Bespoke Manila will be happy to assist.",
+  "rsvpContact": {
+    "name": "Ria Pascual",
+    "phone": "+63 915 850 7644",
+    "viber": true,
+    "whatsapp": true
+  },
   "song": {
     "file": "",
     "title": ""
