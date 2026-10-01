@@ -244,7 +244,8 @@
   ],
   "galleryNote": "Swipe for more. Photos from the day will be gathered here afterwards.",
   "rsvpPhoto": "bouquet2.jpg",
-  "rsvpDeadline": "30 November 2026",
+  "rsvpDeadline": "1 December 2026",
+  "rsvpLine": "Kindly let us know by {date}, so we can make sure there’s a seat with your name on it.",
   "song": {
     "file": "",
     "title": ""
