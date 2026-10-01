@@ -1107,7 +1107,7 @@ function Landing({ onEnter }) {
         <div className="veil" />
         <div className="flower" onClick={handleLogoClick} aria-hidden="true"><FlowerLogo size={40} color="#FFFFFF" /></div>
         <div className="in">
-          <div className="small rise d1">Together with their families</div>
+          <div className="small rise d1">Together with our families</div>
           <h1 className="names rise d2">Chicco<em>&amp;</em>Michelle</h1>
           <div className="row">
             <p className="when rise d3"><b>{cfg.date}</b>{cfg.venuesLine}<span className="tag">{HASHTAG}</span></p>
