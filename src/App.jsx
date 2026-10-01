@@ -1054,10 +1054,10 @@ function Landing({ onEnter }) {
   useEffect(() => { if (lb < 0) return; const k = e => { if (e.key === "Escape") setLb(-1); if (e.key === "ArrowRight") setLb(i => (i + 1) % gal.length); if (e.key === "ArrowLeft") setLb(i => (i - 1 + gal.length) % gal.length); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [lb, gal.length]);
   const stripRef = useRef(null);
   const codeOk = s => !cfg.guestCode || String(s || "").trim().toLowerCase() === String(cfg.guestCode).trim().toLowerCase();
-  const [unlocked, setUnlocked] = useState(() => { try { const q = new URLSearchParams(window.location.search).get("code"); if (q) return true; return localStorage.getItem("cm-guest") === "1"; } catch { return false; } });
-  useEffect(() => { try { const q = new URLSearchParams(window.location.search).get("code"); if (q && codeOk(q)) { localStorage.setItem("cm-guest", "1"); setUnlocked(true); } else if (q) setUnlocked(false); } catch {} }, [cfg.guestCode]);
+  const [unlocked, setUnlocked] = useState(false);
+  useEffect(() => { try { const q = new URLSearchParams(window.location.search).get("code"); if (q && codeOk(q)) setUnlocked(true); } catch {} }, [cfg.guestCode]);
   const [codeIn, setCodeIn] = useState(""); const [codeErr, setCodeErr] = useState(false);
-  const tryCode = () => { if (codeOk(codeIn)) { try { localStorage.setItem("cm-guest", "1"); } catch {} setUnlocked(true); setTimeout(() => document.getElementById("day")?.scrollIntoView({ behavior: "smooth" }), 150); } else { setCodeErr(true); } };
+  const tryCode = () => { if (codeOk(codeIn)) { setUnlocked(true); setTimeout(() => document.getElementById("day")?.scrollIntoView({ behavior: "smooth" }), 150); } else { setCodeErr(true); } };
   const gated = !!cfg.guestCode && !unlocked;
   useReveal(gated);
   const stripScroll = dir => { const el = stripRef.current; if (!el) return; const card = el.querySelector(".lp-frame"); el.scrollBy({ left: dir * ((card?.getBoundingClientRect().width || 300) + 14), behavior: "smooth" }); };
