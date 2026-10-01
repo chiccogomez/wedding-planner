@@ -184,6 +184,25 @@ const injectStyles = () => {
     .lp-hash{margin-top:44px;padding:clamp(22px,3vw,34px);background:var(--forest);color:var(--ivory);display:flex;flex-wrap:wrap;gap:12px 32px;align-items:center;justify-content:space-between;}
     .lp-hash .h{font-family:'Bodoni Moda',serif;font-size:clamp(26px,3.6vw,44px);color:var(--amber);line-height:1;}
     .lp-hash p{margin:0;font-size:14px;opacity:.85;max-width:40ch;}
+    /* hero nav */
+    .lp-hero-nav{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:clamp(18px,3vw,28px);}
+    .lp-hero-nav button{background:transparent;border:0;color:#fff;cursor:pointer;padding:4px;font-size:22px;line-height:1;opacity:.75;}
+    .lp-hero-nav button:hover{opacity:1;}
+    .lp-hero-nav .dot{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.4;padding:0;}
+    .lp-hero-nav .dot.on{opacity:1;background:var(--amber);}
+    /* strip arrows + lightbox */
+    .lp-strip-wrap{position:relative;}
+    .lp-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(30,25,21,.6);color:var(--ivory);font-size:18px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:.8;}
+    .lp-arrow.l{left:clamp(8px,2vw,24px);} .lp-arrow.r{right:clamp(8px,2vw,24px);}
+    .lp-arrow:hover{background:rgba(30,25,21,.95);border-color:var(--amber);opacity:1;}
+    @media(min-width:821px){.lp-arrow{display:flex;}}
+    .lp-strip .lp-frame{cursor:zoom-in;}
+    .lp-lb{position:fixed;inset:0;z-index:1000;background:rgba(20,16,13,.94);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));animation:lp-tick .25s ease-out;}
+    .lp-lb img{max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+    .lp-lb-x{position:absolute;top:max(12px,env(safe-area-inset-top));right:16px;background:transparent;border:0;color:#fff;font-size:34px;line-height:1;cursor:pointer;opacity:.8;}
+    .lp-lb-arrow{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font-size:30px;line-height:1;cursor:pointer;}
+    .lp-lb-arrow.l{left:12px;} .lp-lb-arrow.r{right:12px;}
+    .lp-lb-count{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#fff;opacity:.7;font-size:12px;letter-spacing:.16em;text-transform:uppercase;}
     /* gallery strip */
     .lp-strip{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 clamp(20px,5vw,56px) 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
     .lp-strip::-webkit-scrollbar{display:none;}
@@ -216,10 +235,14 @@ const injectStyles = () => {
     .lp-opt.wrong{opacity:.35;text-decoration:line-through;}
     /* footer */
     .lp-foot{background:var(--forest);color:var(--ivory);padding:clamp(48px,7vw,88px) 0;text-align:center;}
-    .lp-foot .big{font-family:'Bodoni Moda',serif;font-size:clamp(36px,5vw,64px);line-height:1;margin:14px 0 8px;}
+    .lp-foot .big{font-family:'Bodoni Moda',serif;font-size:clamp(36px,5vw,64px);line-height:1;margin:10px auto 8px;text-align:center;}
     .lp-foot .big em{color:var(--amber);}
+    .lp-foot .amp-center{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;column-gap:.22em;max-width:none;}
+    .lp-foot .amp-center .l{text-align:right;} .lp-foot .amp-center .r{text-align:left;}
     .lp-foot .tag{font-size:clamp(18px,2.4vw,26px);color:var(--amber);margin:8px 0 22px;}
-    .lp-foot p{margin:0 auto .6em;font-size:14px;opacity:.85;max-width:60ch;}
+    .lp-foot p{margin:0 auto;font-size:14px;opacity:.85;max-width:60ch;text-align:center;line-height:1.7;}
+    .lp-foot .foot-line{margin:0 auto;}
+    .lp-foot .tag{margin:6px 0 26px;}
     .lp-song{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;background:rgba(30,25,21,.9);color:var(--ivory);border:1px solid rgba(255,255,255,.2);padding:10px 16px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:999px;display:flex;align-items:center;gap:10px;backdrop-filter:blur(6px);}
     .lp-song .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);}
     .lp-song[aria-pressed="true"] .dot{animation:lp-pulse 1.4s infinite;}
@@ -678,14 +701,24 @@ const SITE_DEFAULTS = {
   "venuesLine": "Our Lady of Lourdes and Antonio's, Tagaytay",
   "hero": [
     {
+      "file": "bridge.jpg",
+      "desktop": "center 60%",
+      "mobile": "70% 62%"
+    },
+    {
       "file": "hero.jpg",
       "desktop": "center 32%",
       "mobile": "48% 30%"
     },
     {
-      "file": "bridge.jpg",
-      "desktop": "center 60%",
-      "mobile": "70% 62%"
+      "file": "close.jpg",
+      "desktop": "center 28%",
+      "mobile": "52% 26%"
+    },
+    {
+      "file": "lanai.jpg",
+      "desktop": "center 72%",
+      "mobile": "68% 72%"
     }
   ],
   "heroVideo": "",
@@ -896,24 +929,35 @@ const SITE_DEFAULTS = {
   },
   "gallery": [
     {
-      "file": "bridge.jpg",
+      "file": "dogs.jpg"
+    },
+    {
+      "file": "lattice.jpg"
+    },
+    {
+      "file": "hug.jpg"
+    },
+    {
+      "file": "fieldwide.jpg",
       "wide": true
     },
     {
-      "file": "standing.jpg"
+      "file": "profiles.jpg"
+    },
+    {
+      "file": "ringback.jpg"
+    },
+    {
+      "file": "garden.jpg"
     },
     {
       "file": "window.jpg"
     },
     {
-      "file": "house.jpg",
-      "wide": true
+      "file": "heads.jpg"
     },
     {
-      "file": "dinner.jpg"
-    },
-    {
-      "file": "lanai.jpg"
+      "file": "walk.jpg"
     }
   ],
   "galleryNote": "Swipe for more. Photos from the day will be gathered here afterwards.",
@@ -924,7 +968,7 @@ const SITE_DEFAULTS = {
     "file": "",
     "title": ""
   },
-  "contact": "Questions? Message either of us, or Ernest at Bespoke Manila, 0917 521 5447.",
+  "contact": "Questions? Message either of us or\nRia Pascual at Bespoke Manila, +63 915 850 7644",
   "spotify": {
     "url": "https://open.spotify.com/playlist/0NtPuMtvDFj8pZfPxue9z2",
     "title": "The soundtrack",
@@ -985,8 +1029,15 @@ function Landing({ onEnter }) {
   const heroRef = useRef(null);
   useReveal(); useParallax(heroRef, .25);
   const [heroIdx, setHeroIdx] = useState(() => Math.floor(Math.random() * 8));
-  useEffect(() => { if (HERO_SHOTS.length < 2) return; const id = setInterval(() => setHeroIdx(i => i + 1), 8000); return () => clearInterval(id); }, [HERO_SHOTS.length]);
-  const heroOn = HERO_SHOTS.length ? heroIdx % HERO_SHOTS.length : 0;
+  const heroPause = useRef(0);
+  useEffect(() => { if (HERO_SHOTS.length < 2) return; const id = setInterval(() => { if (Date.now() > heroPause.current) setHeroIdx(i => i + 1); }, 8000); return () => clearInterval(id); }, [HERO_SHOTS.length]);
+  const heroOn = HERO_SHOTS.length ? ((heroIdx % HERO_SHOTS.length) + HERO_SHOTS.length) % HERO_SHOTS.length : 0;
+  const heroGo = n => { heroPause.current = Date.now() + 20000; setHeroIdx(n); };
+  const [lb, setLb] = useState(-1);   /* lightbox index into gallery */
+  const gal = cfg.gallery || [];
+  useEffect(() => { if (lb < 0) return; const k = e => { if (e.key === "Escape") setLb(-1); if (e.key === "ArrowRight") setLb(i => (i + 1) % gal.length); if (e.key === "ArrowLeft") setLb(i => (i - 1 + gal.length) % gal.length); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [lb, gal.length]);
+  const stripRef = useRef(null);
+  const stripScroll = dir => { const el = stripRef.current; if (!el) return; const card = el.querySelector(".lp-frame"); el.scrollBy({ left: dir * ((card?.getBoundingClientRect().width || 300) + 14), behavior: "smooth" }); };
   const yt = ytId(cfg.video?.youtube);
   const [playing, setPlaying] = useState(false); const audioRef = useRef(null);
   const toggleSong = () => { const a = audioRef.current; if (!a) return; if (a.paused) { a.play().then(() => setPlaying(true)).catch(() => {}); } else { a.pause(); setPlaying(false); } };
@@ -1039,6 +1090,13 @@ function Landing({ onEnter }) {
             <p className="when rise d3"><b>{cfg.date}</b>{cfg.venuesLine}<span className="tag">{HASHTAG}</span></p>
             <div className="rise d4"><Countdown /></div>
           </div>
+          {HERO_SHOTS.length > 1 && !cfg.heroVideo && (
+            <div className="lp-hero-nav rise d4" aria-label="Choose photo">
+              <button onClick={() => heroGo(heroIdx - 1)} aria-label="Previous photo">‹</button>
+              {HERO_SHOTS.map((_, i) => <button key={i} className={"dot" + (i === heroOn ? " on" : "")} onClick={() => heroGo(i)} aria-label={`Photo ${i + 1}`} />)}
+              <button onClick={() => heroGo(heroIdx + 1)} aria-label="Next photo">›</button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -1171,9 +1229,22 @@ function Landing({ onEnter }) {
       {/* Gallery strip */}
       <section className="lp-sec dark" style={{ paddingLeft: 0, paddingRight: 0 }}>
         <div className="wrap"><div className="small rv">Before the big day</div><h2 className="rv" style={{ transitionDelay: ".1s" }}>A few from the <em>prenup</em></h2></div>
-        <div className="lp-strip">
-          {(cfg.gallery || []).map((g, i) => <div key={i} className={"lp-frame" + (g.wide ? " wide" : "")}><img src={photoUrl(g.file)} alt={g.caption || ""} loading="lazy" />{g.caption && <span className="cap">{g.caption}</span>}</div>)}
+        <div className="lp-strip-wrap">
+          <button className="lp-arrow l" onClick={() => stripScroll(-1)} aria-label="Scroll left">‹</button>
+          <div className="lp-strip" ref={stripRef}>
+            {gal.map((g, i) => <div key={i} className={"lp-frame" + (g.wide ? " wide" : "")} onClick={() => setLb(i)} role="button" tabIndex={0} onKeyDown={e => e.key === "Enter" && setLb(i)}><img src={photoUrl(g.file)} alt={g.caption || ""} loading="lazy" />{g.caption && <span className="cap">{g.caption}</span>}</div>)}
+          </div>
+          <button className="lp-arrow r" onClick={() => stripScroll(1)} aria-label="Scroll right">›</button>
         </div>
+        {lb >= 0 && gal[lb] && (
+          <div className="lp-lb" onClick={() => setLb(-1)} role="dialog" aria-modal="true">
+            <button className="lp-lb-x" onClick={() => setLb(-1)} aria-label="Close">×</button>
+            <button className="lp-lb-arrow l" onClick={e => { e.stopPropagation(); setLb((lb - 1 + gal.length) % gal.length); }} aria-label="Previous">‹</button>
+            <img src={photoUrl(gal[lb].file)} alt={gal[lb].caption || ""} onClick={e => e.stopPropagation()} />
+            <button className="lp-lb-arrow r" onClick={e => { e.stopPropagation(); setLb((lb + 1) % gal.length); }} aria-label="Next">›</button>
+            <div className="lp-lb-count">{lb + 1} / {gal.length}{gal[lb].caption ? ` · ${gal[lb].caption}` : ""}</div>
+          </div>
+        )}
         <div className="wrap"><p style={{ fontSize: 13, opacity: .6, marginTop: 18 }}>{cfg.galleryNote} {HASHTAG}</p></div>
       </section>
 
@@ -1272,11 +1343,12 @@ function Landing({ onEnter }) {
 
       <footer className="lp-foot">
         <div className="wrap">
-          <FlowerLogo size={30} color="#D9A55A" />
-          <p className="big">Chicco <em>&amp;</em> Michelle</p>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><FlowerLogo size={30} color="#D9A55A" /></div>
+          <p className="big amp-center"><span className="l">Chicco</span><em>&amp;</em><span className="r">Michelle</span></p>
           <div className="tag">{HASHTAG}</div>
-          <p>{cfg.date}. {cfg.venuesLine}.</p>
-          <p>{cfg.contact}</p>
+          <p className="foot-line">{cfg.date}</p>
+          <p className="foot-line">{cfg.venuesLine}</p>
+          <p className="foot-line" style={{ marginTop: 22 }}>{String(cfg.contact || "").split("\n").map((l, i, arr) => <React.Fragment key={i}>{l}{i < arr.length - 1 && <br />}</React.Fragment>)}</p>
         </div>
       </footer>
       {cfg.song?.file && (
