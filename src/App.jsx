@@ -706,7 +706,7 @@ const FlowerLogo = ({ size = 80, color = "#C4967A" }) => (
 /* ─── Site content: everything below is editable in public/site.json ─────── */
 const SITE_DEFAULTS = {
   "guestCode": "mc",
-  "guestPrompt": "This page is for our guests. Please enter the word from your invitation.",
+  "guestPrompt": "We’re so glad you’re here.\nA little more of the day is waiting inside.\nEnter the word from your invitation to continue.",
   "hashtag": "#naCuaNaSiChicco",
   "date": "Friday, 15 January 2027",
   "venuesLine": "Our Lady of Lourdes and Antonio's, Tagaytay",
@@ -1012,13 +1012,13 @@ const spotifyEmbed = v => { if (!v) return null; const m = String(v).match(/open
 const ytId = v => { if (!v) return ""; const m = String(v).match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/); return m ? m[1] : (/^[\w-]{11}$/.test(v) ? v : ""); };
 
 /* reveal-on-scroll + scrollspy */
-function useReveal() {
+function useReveal(dep) {
   useEffect(() => {
-    const els = Array.from(document.querySelectorAll(".lp .rv, .lp .lp-tl"));
+    const els = Array.from(document.querySelectorAll(".lp .rv:not(.in), .lp .lp-tl:not(.in)"));
     if (!("IntersectionObserver" in window)) { els.forEach(e => e.classList.add("in")); return; }
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .15, rootMargin: "0px 0px -8% 0px" });
     els.forEach(e => io.observe(e)); return () => io.disconnect();
-  }, []);
+  }, [dep]);
 }
 function useScrollSpy(ids, setActive) {
   useEffect(() => {
@@ -1043,7 +1043,7 @@ function Landing({ onEnter }) {
   const HERO_SHOTS = (cfg.hero || []).map(h => ({ src: photoUrl(h.file), pos: h.desktop || "center", mobile: h.mobile || h.desktop || "center" }));
   const [adminClicks, setAdminClicks] = useState(0);
   const heroRef = useRef(null);
-  useReveal(); useParallax(heroRef, .25);
+  useParallax(heroRef, .25);
   const [heroIdx, setHeroIdx] = useState(() => Math.floor(Math.random() * 8));
   const heroPause = useRef(0);
   useEffect(() => { if (HERO_SHOTS.length < 2) return; const id = setInterval(() => { if (Date.now() > heroPause.current) setHeroIdx(i => i + 1); }, 8000); return () => clearInterval(id); }, [HERO_SHOTS.length]);
@@ -1059,6 +1059,7 @@ function Landing({ onEnter }) {
   const [codeIn, setCodeIn] = useState(""); const [codeErr, setCodeErr] = useState(false);
   const tryCode = () => { if (codeOk(codeIn)) { try { localStorage.setItem("cm-guest", "1"); } catch {} setUnlocked(true); setTimeout(() => document.getElementById("day")?.scrollIntoView({ behavior: "smooth" }), 150); } else { setCodeErr(true); } };
   const gated = !!cfg.guestCode && !unlocked;
+  useReveal(gated);
   const stripScroll = dir => { const el = stripRef.current; if (!el) return; const card = el.querySelector(".lp-frame"); el.scrollBy({ left: dir * ((card?.getBoundingClientRect().width || 300) + 14), behavior: "smooth" }); };
   const yt = ytId(cfg.video?.youtube);
   const [playing, setPlaying] = useState(false); const audioRef = useRef(null);
@@ -1127,7 +1128,7 @@ function Landing({ onEnter }) {
           <div className="wrap">
             <div className="lp-form" style={{ maxWidth: 420 }}>
               <div className="small">For our guests</div>
-              <p style={{ color: "var(--ink2)", fontSize: 15, marginTop: 10 }}>{cfg.guestPrompt}</p>
+              <p style={{ color: "var(--ink2)", fontSize: 15, marginTop: 10, lineHeight: 1.8 }}>{String(cfg.guestPrompt || "").split("\n").map((l, i, arr) => <React.Fragment key={i}>{l}{i < arr.length - 1 && <br />}</React.Fragment>)}</p>
               <label htmlFor="guest-code">The word on your invitation</label>
               <input id="guest-code" value={codeIn} onChange={e => { setCodeIn(e.target.value); setCodeErr(false); }} onKeyDown={e => e.key === "Enter" && tryCode()} autoComplete="off" autoCapitalize="none" placeholder="" />
               {codeErr && <div className="lp-err">That's not it. Check the invitation and try again.</div>}
