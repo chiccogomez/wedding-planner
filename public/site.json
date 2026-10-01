@@ -1,0 +1,289 @@
+{
+  "guestCode": "mc",
+  "guestPrompt": "We’re so glad you’re here.\nA little more of the day is waiting inside.\nEnter the word from your invitation to continue.",
+  "hashtag": "#naCuaNaSiChicco",
+  "date": "Friday, 15 January 2027",
+  "venuesLine": "Our Lady of Lourdes and Antonio's, Tagaytay",
+  "hero": [
+    {
+      "file": "bridge.jpg",
+      "desktop": "center 60%",
+      "mobile": "70% 62%"
+    },
+    {
+      "file": "hero.jpg",
+      "desktop": "center 32%",
+      "mobile": "48% 30%"
+    },
+    {
+      "file": "close.jpg",
+      "desktop": "center 28%",
+      "mobile": "52% 26%"
+    },
+    {
+      "file": "lanai.jpg",
+      "desktop": "center 72%",
+      "mobile": "68% 72%"
+    }
+  ],
+  "heroVideo": "",
+  "dayHeading": "And it all begins\nwith",
+  "dayHeadingEm": "“I do.”",
+  "timeline": [
+    {
+      "time": "3:00",
+      "ampm": "PM",
+      "what": "Ceremony",
+      "note": "God’s blessing, a lifetime of promises, a solemn “I do.”"
+    },
+    {
+      "time": "4:30",
+      "ampm": "PM",
+      "what": "Photos at the Church",
+      "note": "A little proof we all looked this good."
+    },
+    {
+      "time": "5:00",
+      "ampm": "PM",
+      "what": "Cocktails at the Lanai",
+      "note": "Her favorite place at his favorite time of day."
+    },
+    {
+      "time": "6:30",
+      "ampm": "PM",
+      "what": "Dinner",
+      "note": "Stories are shared. Glasses are raised."
+    },
+    {
+      "time": "9:00",
+      "ampm": "PM",
+      "what": "The Night Goes On",
+      "note": "We settle into the night."
+    }
+  ],
+  "dayPhoto": "kiss.jpg",
+  "therePhoto": "house.jpg",
+  "therePhoto2": "wall.jpg",
+  "thereHeading": "Meet us in",
+  "thereHeadingEm": "Tagaytay",
+  "thereNote": "Just far enough from the city to slow things down — an afternoon away, a familiar favorite, and two places we’d love to share with you.",
+  "dressCode": {
+    "gentlemen": "Barong Tagalog",
+    "ladies": "Cocktail Attire",
+    "note": "Kindly avoid black or white dresses."
+  },
+  "venues": [
+    {
+      "name": "Our Lady of Lourdes Parish",
+      "when": "Ceremony, 3:00 PM",
+      "address": "Silang Crossing East, Tagaytay City",
+      "maps": "https://maps.google.com/?q=Our+Lady+of+Lourdes+Parish+Tagaytay"
+    },
+    {
+      "name": "Antonio’s",
+      "when": "Reception, from 5:00 PM",
+      "address": "Purok 138, Barangay Neogan, Tagaytay City",
+      "maps": "https://maps.google.com/?q=Antonio%27s+Restaurant+Tagaytay"
+    }
+  ],
+  "chicco": {
+    "photo": "chicco.jpg",
+    "name": "Chicco",
+    "who": "Manuel Angelo Gomez, the groom",
+    "blurb": "A few lines about Chicco go here: what he's like at a table, what he cooks on a Sunday, what makes him laugh."
+  },
+  "michelle": {
+    "photo": "michelle.jpg",
+    "name": "Michelle",
+    "who": "Michelle Cua, the bride",
+    "blurb": "A few lines about Michelle: her warmth, the things she can't stop reading, the smile everyone mentions."
+  },
+  "togetherPhotos": [
+    "laugh1.jpg",
+    "laugh2.jpg",
+    "laughbw.jpg"
+  ],
+  "hashtagBlurb": "Tag your photos and stories so we can find them all afterwards. Lulu the dog will be reviewing every one.",
+  "entourage": {
+    "bg": "ring.jpg",
+    "heading": "Standing with",
+    "headingEm": "us",
+    "parents": {
+      "groom": [
+        "Mr. Manuel A. Gomez",
+        "Mrs. Aida C. Gomez"
+      ],
+      "bride": [
+        "Mr. John T. Cua",
+        "Mrs. Lilian L. Cua"
+      ]
+    },
+    "principal": [
+      [
+        "Mr. Gerardo C. Ablaza, Jr.",
+        "Mrs. Ma. Lourdes L. Ablaza"
+      ],
+      [
+        "Mr. Clemente A. Aurelio",
+        "Mrs. Doris G. Aurelio"
+      ],
+      [
+        "Mr. Alfonso L. Salcedo, Jr.",
+        "Mrs. Clarabelle L. Salcedo"
+      ],
+      [
+        "Mr. Antonio R. Samson",
+        "Mrs. Lourdes K. Samson"
+      ],
+      [
+        "Mr. James D. Chuaunsu",
+        "Mrs. Alice D. Chuaunsu"
+      ],
+      [
+        "Mr. Jose C. Jose",
+        "Mrs. Adela P. Jose"
+      ],
+      [
+        "Mr. Alexander G. Tan",
+        "Mrs. Jocelyn E. Tan"
+      ]
+    ],
+    "groups": [
+      {
+        "left": {
+          "title": "Best Man",
+          "names": [
+            "Michelangelo K. Samson"
+          ]
+        },
+        "right": {
+          "title": "Maids of Honor",
+          "names": [
+            "Magdalene L. Ngo",
+            "Charlene C. Siason"
+          ]
+        }
+      },
+      {
+        "left": {
+          "title": "Groomsmen",
+          "names": [
+            "Michael Stephen G. Aurelio",
+            "Avelino P. Cruz III",
+            "Alberto B. Gomez, Jr.",
+            "Jaime Juan R. Paz III",
+            "Pablito C. Tolosa"
+          ]
+        },
+        "right": {
+          "title": "Bridesmaids",
+          "names": [
+            "Ana Carmela C. Gomez",
+            "Taskeen K. Lih",
+            "Catherine Anne G. Aurelio",
+            "Charmaine R. Go",
+            "Sheryl L. Ang"
+          ]
+        }
+      },
+      {
+        "left": {
+          "title": "Junior Groomsmen",
+          "names": [
+            "John Colin C. Cua",
+            "Kenzo Daniel C. Lin"
+          ]
+        },
+        "right": {
+          "title": "Junior Bridesmaids",
+          "names": [
+            "Lauren Isabelle C. Cua",
+            "Kayla Rizza C. Lin"
+          ]
+        }
+      }
+    ],
+    "secondary": [
+      {
+        "title": "Candle",
+        "names": [
+          "Wen-Szu Lin",
+          "Karen C. Lin"
+        ]
+      },
+      {
+        "title": "Veil",
+        "names": [
+          "Laurence L. Cua",
+          "Coleen C. Cua"
+        ]
+      },
+      {
+        "title": "Cord",
+        "names": [
+          "Julian L. Cua",
+          "Steffi G. Cua"
+        ]
+      }
+    ]
+  },
+  "video": {
+    "youtube": "",
+    "title": "",
+    "caption": ""
+  },
+  "gallery": [
+    {
+      "file": "dogs.jpg"
+    },
+    {
+      "file": "lattice.jpg"
+    },
+    {
+      "file": "hug.jpg"
+    },
+    {
+      "file": "fieldwide.jpg",
+      "wide": true
+    },
+    {
+      "file": "profiles.jpg"
+    },
+    {
+      "file": "ringback.jpg"
+    },
+    {
+      "file": "garden.jpg"
+    },
+    {
+      "file": "heads.jpg"
+    },
+    {
+      "file": "walk.jpg"
+    }
+  ],
+  "galleryNote": "Swipe for more. Photos from the day will be gathered here afterwards.",
+  "rsvpPhoto": "bouquet2.jpg",
+  "rsvpMode": "message",
+  "rsvpDeadline": "1 December 2026",
+  "rsvpLine": "Kindly let us know by {date}, so we can make sure there’s a seat with your name on it.",
+  "rsvpMessage": "Prefer to send us a message instead?\nRia Pascual of Bespoke Manila will be happy to assist.",
+  "rsvpContact": {
+    "name": "Ria Pascual",
+    "phone": "+63 915 850 7644",
+    "viber": true,
+    "whatsapp": true
+  },
+  "song": {
+    "file": "",
+    "title": ""
+  },
+  "contact": "Questions? Message either of us or\nRia Pascual at Bespoke Manila, +63 915 850 7644",
+  "spotify": {
+    "url": "https://open.spotify.com/playlist/0NtPuMtvDFj8pZfPxue9z2",
+    "title": "The soundtrack",
+    "caption": "Songs that got us here, and a few we'll be dancing to."
+  },
+  "albumUrl": "",
+  "albumNote": "Photo drop opens on the day."
+}
